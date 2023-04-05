@@ -1,0 +1,6 @@
+/cmake-build-debug/
+/dependencies/mongo-cxx-driver-r3.7.1/
+/dependencies/mongo-c-driver-1.23.2/
+/dependencies/hiredis/
+/dependencies/boost/
+/.idea
