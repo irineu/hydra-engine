@@ -7,16 +7,17 @@
 namespace hydra {
     namespace bindings {
 
-        void HTTPClient::fail(boost::beast::error_code ec, char const* what)
-        {
-            std::cerr << what << ": " << ec.message() << "\n";
-        }
+//        void HTTPClient::fail(boost::beast::error_code ec, char const* what)
+//        {
+//            std::cerr << what << ": " << ec.message() << "\n";
+//        }
 
         void HTTPClient::run(
                 char const* host,
                 char const* port,
                 char const* target,
-                int version)
+                int version,
+                std::function<void()> on_success, std::function<void(boost::beast::error_code, char const*)> on_fail)
         {
             // Set up an HTTP GET request message
             req_.version(version);
@@ -24,6 +25,9 @@ namespace hydra {
             req_.target(target);
             req_.set(http::field::host, host);
             req_.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+            this->on_success_ = on_success;
+            this->on_fail_ = on_fail;
 
             // Look up the domain name
             resolver_.async_resolve(
@@ -39,7 +43,7 @@ namespace hydra {
                 boost::asio::ip::tcp::resolver::results_type results)
         {
             if(ec)
-                return fail(ec, "resolve");
+                return this->on_fail_(ec, "resolve");
 
             // Set a timeout on the operation
             stream_.expires_after(std::chrono::seconds(30));
@@ -55,7 +59,7 @@ namespace hydra {
         void HTTPClient::on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type)
         {
             if(ec)
-                return fail(ec, "connect");
+                return this->on_fail_(ec, "connect");
 
             // Set a timeout on the operation
             stream_.expires_after(std::chrono::seconds(30));
@@ -74,7 +78,7 @@ namespace hydra {
             boost::ignore_unused(bytes_transferred);
 
             if(ec)
-                return fail(ec, "write");
+                return this->on_fail_(ec, "write");
 
             // Receive the HTTP response
             http::async_read(stream_, buffer_, res_,
@@ -90,7 +94,7 @@ namespace hydra {
             boost::ignore_unused(bytes_transferred);
 
             if(ec)
-                return fail(ec, "read");
+                return this->on_fail_(ec, "read");
 
             // Write the message to standard out
             //std::cout << res_ << std::endl;
@@ -109,8 +113,9 @@ namespace hydra {
 
             // not_connected happens sometimes so don't bother reporting it.
             if(ec && ec != boost::beast::errc::not_connected)
-                return fail(ec, "shutdown");
+                return this->on_fail_(ec, "shutdown");
 
+            this->on_success_();
             // If we get here then the connection is closed gracefully
         }
 

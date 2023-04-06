@@ -22,14 +22,15 @@ namespace hydra {
             http::request<http::empty_body> req_;
             boost::beast::flat_buffer buffer_;
             http::response<http::string_body> res_;
+            std::function<void()> on_success_;
+            std::function<void(boost::beast::error_code, char const*)> on_fail_;
 
         public:
             explicit
             HTTPClient(boost::asio::io_context &ioc)
             : resolver_(boost::asio::make_strand(ioc)), stream_(boost::asio::make_strand(ioc)) {}
 
-            void fail(boost::beast::error_code ec, char const* what);
-            void run(char const* host,char const* port,char const* target,int version);
+            void run(char const* host,char const* port,char const* target,int version, std::function<void()> on_success, std::function<void(boost::beast::error_code, char const*)> on_fail);
             void on_resolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
             void on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type);
             void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
