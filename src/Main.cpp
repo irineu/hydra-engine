@@ -9,8 +9,11 @@
 
 #include "v8.h"
 #include "libplatform/libplatform.h"
-
-#include "bindings/HTTPClient.h"
+#include "v8-inspector.h"
+#include "v8-debug.h"
+#include "v8-function-callback.h"
+#include "src/debug/interface-types.h"
+#include "src/debug/debug-interface.h"
 
 std::unique_ptr<v8::Platform> platform;
 
@@ -21,14 +24,68 @@ void initializeV8()
     v8::V8::Initialize();
 }
 
-class Console {
+
+class OwnConsole : public v8::debug::ConsoleDelegate{
 public:
-    Console() {}
-    ~Console() {}
+    void Debug(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void Error(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void Info(const v8::debug::ConsoleCallArguments& args,
+              const v8::debug::ConsoleContext& context) {}
+    void Log(const v8::debug::ConsoleCallArguments& args,
+             const v8::debug::ConsoleContext& context) {
+        v8::String::Utf8Value str(this->isolate_, args[0]);
+        std::cout << *str << std::endl;
+    }
+    void Warn(const v8::debug::ConsoleCallArguments& args,
+              const v8::debug::ConsoleContext& context) {}
+    void Dir(const v8::debug::ConsoleCallArguments& args,
+             const v8::debug::ConsoleContext& context) {}
+    void DirXml(const v8::debug::ConsoleCallArguments& args,
+                const v8::debug::ConsoleContext& context) {}
+    void Table(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void Trace(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void Group(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void GroupCollapsed(const v8::debug::ConsoleCallArguments& args,
+                        const v8::debug::ConsoleContext& context) {}
+    void GroupEnd(const v8::debug::ConsoleCallArguments& args,
+                  const v8::debug::ConsoleContext& context) {}
+    void Clear(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void Count(const v8::debug::ConsoleCallArguments& args,
+               const v8::debug::ConsoleContext& context) {}
+    void CountReset(const v8::debug::ConsoleCallArguments& args,
+                    const v8::debug::ConsoleContext& context) {}
+    void Assert(const v8::debug::ConsoleCallArguments& args,
+                const v8::debug::ConsoleContext& context) {}
+    void Profile(const v8::debug::ConsoleCallArguments& args,
+                 const v8::debug::ConsoleContext& context) {}
+    void ProfileEnd(const v8::debug::ConsoleCallArguments& args,
+                    const v8::debug::ConsoleContext& context) {}
+    void Time(const v8::debug::ConsoleCallArguments& args,
+              const v8::debug::ConsoleContext& context) {}
+    void TimeLog(const v8::debug::ConsoleCallArguments& args,
+                 const v8::debug::ConsoleContext& context) {}
+    void TimeEnd(const v8::debug::ConsoleCallArguments& args,
+                 const v8::debug::ConsoleContext& context) {}
+    void TimeStamp(const v8::debug::ConsoleCallArguments& args,
+                   const v8::debug::ConsoleContext& context) {}
+
+    explicit OwnConsole(v8::Isolate* isolate){
+        this->isolate_ = isolate;
+    };
+    ~OwnConsole() {}
 private:
+    v8::Isolate* isolate_;
 public:
 
 };
+
+
 
 std::string loadFile(std::string filename){
     std::string code = "";
@@ -65,11 +122,15 @@ int main(){
 
     initializeV8();
 
+
     v8::Isolate::CreateParams create_params;
     create_params.array_buffer_allocator =
             v8::ArrayBuffer::Allocator::NewDefaultAllocator();
     v8::Isolate* isolate = v8::Isolate::New(create_params);
     {
+        OwnConsole * cc = new OwnConsole(isolate);
+        v8::debug::SetConsoleDelegate(isolate, cc);
+
         v8::Isolate::Scope isolate_scope(isolate);
         // Create a stack-allocated handle scope.
         v8::HandleScope handle_scope(isolate);
@@ -209,7 +270,7 @@ int main(){
         v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
         // Convert the result to an UTF8 string and print it.
         v8::String::Utf8Value utf8(isolate, result);
-        printf("%s\n", *utf8);
+        printf("output: %s\n", *utf8);
 
         v8::Handle<v8::Object> global_output = context->Global();
 

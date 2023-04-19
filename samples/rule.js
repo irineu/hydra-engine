@@ -45,11 +45,11 @@ function run(s){
                 }
             }else if(e == 'error'){
                 script[e] = () => {
-                    consolex.log("on error!!");
+                    console.log("on error!!");
                 }
 
             }else{
-                consolex.log("event not set");
+                console.log("event not set");
             }
 
         });
@@ -58,8 +58,8 @@ function run(s){
 
 
     }else{
-        consolex.log(s);
-        consolex.log("done");
+        console.log(s);
+        console.log("done");
     }
 
 }

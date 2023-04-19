@@ -4,7 +4,7 @@ class ModA extends Base{
     }
 
     run(){
-        consolex.log("xpto");
+        console.log("xpto");
         this.next();
     }
 }

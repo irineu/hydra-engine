@@ -4,7 +4,7 @@ class ModB extends Base{
     }
 
     run(){
-        consolex.log("hueheueh");
+        console.log("hueheueh");
         setTimeout(()=>{
             this.next();
         }, 4000);

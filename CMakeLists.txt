@@ -8,6 +8,8 @@ add_compile_definitions(
         V8_ENABLE_SANDBOX
 )
 
+
+include_directories(/Users/irineuantunes/Downloads/v8-refs_tags_11.1.277.17)
 include_directories(/opt/homebrew/Cellar/v8/11.1.277.17/include)
 
 add_executable(hydra_engine src/Main.cpp src/dao/MongoDAO.cpp src/bindings/HTTPClient.cpp src/bindings/HTTPClient.h)
@@ -19,6 +21,7 @@ target_include_directories(hydra_engine PRIVATE dependencies/boost)
 target_link_libraries(hydra_engine ${CMAKE_CURRENT_LIST_DIR}/dependencies/boost/stage/lib/libboost_system.dylib)
 
 #v8
+target_include_directories(hydra_engine PRIVATE /Users/irineuantunes/Downloads/v8-refs_tags_11.1.277.17)
 target_include_directories(hydra_engine PRIVATE /opt/homebrew/Cellar/v8/11.1.277.17/include)
 target_link_libraries(hydra_engine /opt/homebrew/Cellar/v8/11.1.277.17/lib/libv8.dylib)
 target_link_libraries(hydra_engine /opt/homebrew/Cellar/v8/11.1.277.17/lib/libv8_libplatform.dylib)
