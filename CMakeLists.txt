@@ -12,7 +12,7 @@ add_compile_definitions(
 include_directories(/Users/irineuantunes/Downloads/v8-refs_tags_11.1.277.17)
 include_directories(/opt/homebrew/Cellar/v8/11.1.277.17/include)
 
-add_executable(hydra_engine src/Main.cpp src/dao/MongoDAO.cpp src/bindings/HTTPClient.cpp src/bindings/HTTPClient.h)
+add_executable(hydra_engine src/Main.cpp src/dao/MongoDAO.cpp src/bindings/HTTPClient.cpp src/bindings/HTTPClient.h src/bindings/Console.cpp src/bindings/Console.h)
 
 target_include_directories(hydra_engine PRIVATE ./src)
 
@@ -34,6 +34,6 @@ target_link_libraries(hydra_engine ${CMAKE_CURRENT_LIST_DIR}/dependencies/mongo-
 target_link_libraries(hydra_engine ${CMAKE_CURRENT_LIST_DIR}/dependencies/mongo-cxx-driver-r3.7.1/build/install/lib/libbsoncxx.dylib)
 target_link_libraries(hydra_engine ${CMAKE_CURRENT_LIST_DIR}/dependencies/mongo-cxx-driver-r3.7.1/build/install/lib/libmongocxx.dylib)
 
-#hiredis
+#hiredis - TODO remove
 target_include_directories(hydra_engine PRIVATE dependencies/hiredis/build/release/include)
 target_link_libraries(hydra_engine ${CMAKE_CURRENT_LIST_DIR}/dependencies/hiredis/build/release/lib/libhiredis.dylib)

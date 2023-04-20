@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include "dao/MongoDAO.h"
+#include "bindings/Console.h"
 #include <boost/beast/core.hpp>
 
 #include "v8.h"
@@ -12,8 +13,8 @@
 #include "v8-inspector.h"
 #include "v8-debug.h"
 #include "v8-function-callback.h"
-#include "src/debug/interface-types.h"
-#include "src/debug/debug-interface.h"
+//#include "src/debug/interface-types.h"
+//#include "src/debug/debug-interface.h"
 
 std::unique_ptr<v8::Platform> platform;
 
@@ -23,68 +24,6 @@ void initializeV8()
     v8::V8::InitializePlatform(platform.get());
     v8::V8::Initialize();
 }
-
-
-class OwnConsole : public v8::debug::ConsoleDelegate{
-public:
-    void Debug(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void Error(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void Info(const v8::debug::ConsoleCallArguments& args,
-              const v8::debug::ConsoleContext& context) {}
-    void Log(const v8::debug::ConsoleCallArguments& args,
-             const v8::debug::ConsoleContext& context) {
-        v8::String::Utf8Value str(this->isolate_, args[0]);
-        std::cout << *str << std::endl;
-    }
-    void Warn(const v8::debug::ConsoleCallArguments& args,
-              const v8::debug::ConsoleContext& context) {}
-    void Dir(const v8::debug::ConsoleCallArguments& args,
-             const v8::debug::ConsoleContext& context) {}
-    void DirXml(const v8::debug::ConsoleCallArguments& args,
-                const v8::debug::ConsoleContext& context) {}
-    void Table(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void Trace(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void Group(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void GroupCollapsed(const v8::debug::ConsoleCallArguments& args,
-                        const v8::debug::ConsoleContext& context) {}
-    void GroupEnd(const v8::debug::ConsoleCallArguments& args,
-                  const v8::debug::ConsoleContext& context) {}
-    void Clear(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void Count(const v8::debug::ConsoleCallArguments& args,
-               const v8::debug::ConsoleContext& context) {}
-    void CountReset(const v8::debug::ConsoleCallArguments& args,
-                    const v8::debug::ConsoleContext& context) {}
-    void Assert(const v8::debug::ConsoleCallArguments& args,
-                const v8::debug::ConsoleContext& context) {}
-    void Profile(const v8::debug::ConsoleCallArguments& args,
-                 const v8::debug::ConsoleContext& context) {}
-    void ProfileEnd(const v8::debug::ConsoleCallArguments& args,
-                    const v8::debug::ConsoleContext& context) {}
-    void Time(const v8::debug::ConsoleCallArguments& args,
-              const v8::debug::ConsoleContext& context) {}
-    void TimeLog(const v8::debug::ConsoleCallArguments& args,
-                 const v8::debug::ConsoleContext& context) {}
-    void TimeEnd(const v8::debug::ConsoleCallArguments& args,
-                 const v8::debug::ConsoleContext& context) {}
-    void TimeStamp(const v8::debug::ConsoleCallArguments& args,
-                   const v8::debug::ConsoleContext& context) {}
-
-    explicit OwnConsole(v8::Isolate* isolate){
-        this->isolate_ = isolate;
-    };
-    ~OwnConsole() {}
-private:
-    v8::Isolate* isolate_;
-public:
-
-};
-
 
 
 std::string loadFile(std::string filename){
@@ -128,8 +67,8 @@ int main(){
             v8::ArrayBuffer::Allocator::NewDefaultAllocator();
     v8::Isolate* isolate = v8::Isolate::New(create_params);
     {
-        OwnConsole * cc = new OwnConsole(isolate);
-        v8::debug::SetConsoleDelegate(isolate, cc);
+        Console * console = new Console(isolate);
+        v8::debug::SetConsoleDelegate(isolate, console);
 
         v8::Isolate::Scope isolate_scope(isolate);
         // Create a stack-allocated handle scope.
@@ -207,9 +146,9 @@ int main(){
                     }
                 }));
 
-        v8::Local<v8::ObjectTemplate> console = v8::ObjectTemplate::New(isolate);
-        console->SetInternalFieldCount(1);
-        console->Set(v8::String::NewFromUtf8(isolate, "log", v8::NewStringType::kNormal)
+        v8::Local<v8::ObjectTemplate> consolex = v8::ObjectTemplate::New(isolate);
+        consolex->SetInternalFieldCount(1);
+        consolex->Set(v8::String::NewFromUtf8(isolate, "log", v8::NewStringType::kNormal)
                              .ToLocalChecked(),
                      v8::FunctionTemplate::New(isolate, [](const v8::FunctionCallbackInfo <v8::Value> &args) {
                          v8::Isolate  * isolate = args.GetIsolate();
@@ -222,7 +161,7 @@ int main(){
         global_template->Set(
                 v8::String::NewFromUtf8(isolate, "consolex", v8::NewStringType::kNormal)
                         .ToLocalChecked(),
-                console);
+                consolex);
 
 
         v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global_template);
