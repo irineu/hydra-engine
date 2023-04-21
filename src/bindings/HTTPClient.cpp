@@ -48,42 +48,49 @@ namespace hydra {
 
             cbStruct->success.Reset(isolate,callback.As<v8::Function>());
             cbStruct->fail.Reset(isolate,callbackError.As<v8::Function>());
+            cbStruct->isolate = isolate;
 
             std::make_shared<hydra::bindings::HTTPClient>(*Async::IOC)->run(
                     std::string(*host).c_str(),
                     std::string(*port).c_str(),
                     std::string(*target).c_str(),
-                    11, [cbStruct, ctx, isolate](){
+                    11, [cbStruct](){
+
+                        boost::asio::steady_timer t(*Async::IOC, boost::asio::chrono::seconds(5));
+                        t.wait();
 
                         v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(
-                                isolate,
+                                cbStruct->isolate,
                                 cbStruct->success
                         );
                         v8::Local<v8::Value> result;
 
                         v8::Local<v8::Function> cb = v8::Local<v8::Function>::New(
-                                isolate,
+                                cbStruct->isolate,
                                 callback.As<v8::Function>()
                         );
 
                         if(cb.As<v8::Function>()->Call(
-                                ctx,
-                                v8::Undefined(isolate),
+                                cbStruct->isolate->GetCurrentContext(),
+                                v8::Undefined(cbStruct->isolate),
                                 0,
                                 NULL).ToLocal(&result)
                                 )
                         {
-                            std::cout << "cb ok" << std::endl;
+                            std::cout << "cb okx" << std::endl;
                         }
                         else
                         {
                             std::cout << "cb nokkk" << std::endl;
                         }
 
+                        delete cbStruct;
 
 
-                    }, [callbackError](boost::beast::error_code errorCode, char const* msg){
+
+                    }, [cbStruct, callbackError](boost::beast::error_code errorCode, char const* msg){
                         std::cout << "TODO handle error" << std::endl;
+                        delete cbStruct;
                     });
         }
 

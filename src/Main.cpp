@@ -93,7 +93,7 @@ int main(){
                             v8::String::NewFromUtf8(isolate,"Hello").ToLocalChecked()
                     };
 
-                    if(callback.As<v8::Function>()->Call(
+                    /*if(callback.As<v8::Function>()->Call(
                             ctx,
                             v8::Undefined(isolate),
                             1,
@@ -101,6 +101,20 @@ int main(){
                             )
                     {
                         std::cout << "cb ok" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "cb nok" << std::endl;
+                    }*/
+
+                    if(callback.As<v8::Function>()->Call(
+                            ctx,
+                            v8::Undefined(isolate),
+                            0,
+                            NULL).ToLocal(&result)
+                            )
+                    {
+                        std::cout << "cb okxxx" << std::endl;
                     }
                     else
                     {
@@ -161,31 +175,39 @@ int main(){
             ";
             */
 
+        std::cout << "PREPARE" << std::endl;
+
         v8::Local<v8::String> source = v8::String::NewFromUtf8(isolate, code.c_str(),v8::NewStringType::kNormal).ToLocalChecked();
         v8::Local<v8::Script> script = v8::Script::Compile(context, source).ToLocalChecked();
         v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
+
+        boost::asio::steady_timer t(ioc, boost::asio::chrono::seconds(1));
+        t.wait();
+
+        std::cout << "DONE" << std::endl;
+
         v8::String::Utf8Value utf8(isolate, result);
         printf("output: %s\n", *utf8);
 
-        v8::Handle<v8::Object> global_output = context->Global();
+        //v8::Handle<v8::Object> global_output = context->Global();
 
-        v8::Handle<v8::Value> value = global_output->Get(context, v8::String::NewFromUtf8(isolate,"getName").ToLocalChecked()).ToLocalChecked();
-        if (value->IsFunction()) {
-            v8::Local<v8::Value> foo_arg = v8::String::NewFromUtf8(isolate, "arg from C++").ToLocalChecked();
-
-            {
-                v8::TryCatch trycatch(isolate);
-                //v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &foo_arg);
-                v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(),
-                                                                                           0, NULL);
-                if (!foo_ret.IsEmpty()) {
-                    v8::String::Utf8Value utf8Value(isolate, foo_ret.ToLocalChecked());
-                    std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
-                } else {
-                    v8::String::Utf8Value utf8Value(isolate, trycatch.Message()->Get());
-                    std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
-                }
-            }
+//        v8::Handle<v8::Value> value = global_output->Get(context, v8::String::NewFromUtf8(isolate,"getName").ToLocalChecked()).ToLocalChecked();
+//        if (value->IsFunction()) {
+//            v8::Local<v8::Value> foo_arg = v8::String::NewFromUtf8(isolate, "arg from C++").ToLocalChecked();
+//
+//            {
+//                v8::TryCatch trycatch(isolate);
+//                //v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &foo_arg);
+//                v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(),
+//                                                                                           0, NULL);
+//                if (!foo_ret.IsEmpty()) {
+//                    v8::String::Utf8Value utf8Value(isolate, foo_ret.ToLocalChecked());
+//                    std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
+//                } else {
+//                    v8::String::Utf8Value utf8Value(isolate, trycatch.Message()->Get());
+//                    std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
+//                }
+//            }
 
             /*
             {
@@ -218,7 +240,7 @@ int main(){
                 }
             }
              */
-        }
+        //}
 
         ioc.run();
     }

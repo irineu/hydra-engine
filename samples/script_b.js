@@ -6,6 +6,7 @@ class ModB extends Base{
     run(){
         console.log("hueheueh");
         setTimeout(()=>{
+            console.log("sucesso2");
             this.next();
         }, 4000);
     }

@@ -7,7 +7,17 @@ let rule = {
                 next: {
                     script: "c",
                     events:{
+                        next: {
+                            script: "b",
+                            events: {
+                                next: {
+                                    script: "b",
+                                    events: {
 
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 error: {
@@ -53,13 +63,11 @@ function run(s){
             }
 
         });
-
+        console.log("----")
         script.run();
-
-
     }else{
         console.log(s);
-        console.log("done");
+        console.log("done end finish");
     }
 
 }
