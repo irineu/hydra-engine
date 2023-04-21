@@ -5,6 +5,13 @@ class ModA extends Base{
 
     run(){
         console.log("xpto");
-        this.next();
+
+        httpClient("google.com", "80", "/", 11, () => {
+            console.log("sucesso");
+            this.next();
+        }, () => {
+            console.log("erro");
+            this.next();
+        });
     }
 }

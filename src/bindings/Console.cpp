@@ -5,7 +5,11 @@
 #include "Console.h"
 #include <iostream>
 
-void Console::Log(const v8::debug::ConsoleCallArguments &args, const v8::debug::ConsoleContext &context) {
-    v8::String::Utf8Value str(this->isolate_, args[0]);
-    std::cout << *str << std::endl;
+namespace hydra {
+    namespace bindings {
+        void Console::Log(const v8::debug::ConsoleCallArguments &args, const v8::debug::ConsoleContext &context) {
+            v8::String::Utf8Value str(this->isolate_, args[0]);
+            std::cout << *str << std::endl;
+        }
+    }
 }

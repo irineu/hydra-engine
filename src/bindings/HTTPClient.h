@@ -10,11 +10,17 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/strand.hpp>
 #include <iostream>
+#include "v8.h"
 
 namespace hydra {
     namespace bindings {
 
         namespace http = boost::beast::http;
+
+        struct CallbackStruct{
+            v8::Global<v8::Function> success;
+            v8::Global<v8::Function> fail;
+        };
 
         class HTTPClient : public std::enable_shared_from_this<HTTPClient> {
             boost::beast::tcp_stream stream_;
@@ -35,6 +41,8 @@ namespace hydra {
             void on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type);
             void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
             void on_read(boost::beast::error_code ec,std::size_t bytes_transferred);
+
+            static void handler(const v8::FunctionCallbackInfo <v8::Value> &args);
         };
     } // hydra
 } // bindings

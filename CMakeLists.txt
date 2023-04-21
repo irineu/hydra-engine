@@ -12,7 +12,7 @@ add_compile_definitions(
 include_directories(/Users/irineuantunes/Downloads/v8-refs_tags_11.1.277.17)
 include_directories(/opt/homebrew/Cellar/v8/11.1.277.17/include)
 
-add_executable(hydra_engine src/Main.cpp src/dao/MongoDAO.cpp src/bindings/HTTPClient.cpp src/bindings/HTTPClient.h src/bindings/Console.cpp src/bindings/Console.h)
+add_executable(hydra_engine src/Main.cpp src/dao/MongoDAO.cpp src/bindings/HTTPClient.cpp src/bindings/HTTPClient.h src/bindings/Console.cpp src/bindings/Console.h src/bindings/Async.cpp src/bindings/Async.h)
 
 target_include_directories(hydra_engine PRIVATE ./src)
 
