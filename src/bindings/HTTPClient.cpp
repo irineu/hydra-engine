@@ -86,8 +86,6 @@ namespace hydra {
 
                         delete cbStruct;
 
-
-
                     }, [cbStruct, callbackError](boost::beast::error_code errorCode, char const* msg){
                         std::cout << "TODO handle error" << std::endl;
                         delete cbStruct;

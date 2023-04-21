@@ -150,32 +150,10 @@ int main(){
         code.append(loadFile("../samples/script_a.js"));
         code.append(loadFile("../samples/script_b.js"));
         code.append(loadFile("../samples/script_c.js"));
+
         code.append(loadFile("../samples/rule.js"));
 
         std::cout << code << std::endl;
-
-        /*
-        std::string code =
-                "function getName(){ \
-                return 'irineu' \
-            }\
-\
-                httpClient((arg) => {\
-                    httpClient((arg) => {\
-                        arg\
-                    });\
-                });\
-              (async () => { \
-                \
-                let result = await getName();\
-                \
-            })()\
-            //var x = 'result: ' + JSON.stringify({}) \
-            \
-            ";
-            */
-
-        std::cout << "PREPARE" << std::endl;
 
         v8::Local<v8::String> source = v8::String::NewFromUtf8(isolate, code.c_str(),v8::NewStringType::kNormal).ToLocalChecked();
         v8::Local<v8::Script> script = v8::Script::Compile(context, source).ToLocalChecked();
@@ -184,30 +162,56 @@ int main(){
         boost::asio::steady_timer t(ioc, boost::asio::chrono::seconds(1));
         t.wait();
 
-        std::cout << "DONE" << std::endl;
-
         v8::String::Utf8Value utf8(isolate, result);
         printf("output: %s\n", *utf8);
 
         //v8::Handle<v8::Object> global_output = context->Global();
+        v8::Handle<v8::Object> global_output = isolate->GetCurrentContext()->Global();
 
-//        v8::Handle<v8::Value> value = global_output->Get(context, v8::String::NewFromUtf8(isolate,"getName").ToLocalChecked()).ToLocalChecked();
-//        if (value->IsFunction()) {
-//            v8::Local<v8::Value> foo_arg = v8::String::NewFromUtf8(isolate, "arg from C++").ToLocalChecked();
+        //https://stackoverflow.com/questions/22877875/getting-a-localized-global-scope-for-a-v8-function
+
+
+//        {
+//            v8::Local<v8::Array> props = global_output->GetPropertyNames(context).ToLocalChecked();
 //
-//            {
-//                v8::TryCatch trycatch(isolate);
-//                //v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &foo_arg);
-//                v8::MaybeLocal<v8::Value> foo_ret = value.As<v8::Object>()->CallAsFunction(context, context->Global(),
-//                                                                                           0, NULL);
-//                if (!foo_ret.IsEmpty()) {
-//                    v8::String::Utf8Value utf8Value(isolate, foo_ret.ToLocalChecked());
-//                    std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
-//                } else {
-//                    v8::String::Utf8Value utf8Value(isolate, trycatch.Message()->Get());
-//                    std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
-//                }
+//            for (int j = 0; j <  props->Length(); ++j) {
+//                v8::Local<v8::Value> d = props->Get(context, v8::Integer::New(isolate, j)).ToLocalChecked();//props->Get();
+//                v8::String::Utf8Value str(isolate, d->ToString(context).ToLocalChecked());
+//                std::cout << ">" << *str << std::endl;
 //            }
+//        }
+
+        v8::Handle<v8::Value> runFunc = global_output->Get(context, v8::String::NewFromUtf8(isolate,"run").ToLocalChecked()).ToLocalChecked();
+        if (runFunc->IsFunction()) {
+
+            v8::Handle<v8::Value> rule = global_output->Get(context, v8::String::NewFromUtf8(isolate,"rule").ToLocalChecked()).ToLocalChecked();
+
+            //v8::Local<v8::Value> foo_arg = v8::String::NewFromUtf8(isolate, "arg from C++").ToLocalChecked();
+            v8::Local<v8::Value> rule_arg = rule.As<v8::Value>();
+
+            {
+                v8::TryCatch trycatch(isolate);
+                v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &rule_arg);
+
+                v8::MaybeLocal<v8::Value> foo_ret2 = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &rule_arg);
+//              v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 0, NULL);
+
+                if (!foo_ret.IsEmpty()) {
+                    v8::String::Utf8Value utf8Value(isolate, foo_ret.ToLocalChecked());
+                    std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
+                } else {
+                    v8::String::Utf8Value utf8Value(isolate, trycatch.Message()->Get());
+                    std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
+                }
+
+                if (!foo_ret2.IsEmpty()) {
+                    v8::String::Utf8Value utf8Value(isolate, foo_ret2.ToLocalChecked());
+                    std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
+                } else {
+                    v8::String::Utf8Value utf8Value(isolate, trycatch.Message()->Get());
+                    std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
+                }
+            }
 
             /*
             {
@@ -240,7 +244,7 @@ int main(){
                 }
             }
              */
-        //}
+        }
 
         ioc.run();
     }
