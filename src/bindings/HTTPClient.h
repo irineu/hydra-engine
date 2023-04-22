@@ -17,12 +17,6 @@ namespace hydra {
 
         namespace http = boost::beast::http;
 
-        struct CallbackStruct{
-            v8::Global<v8::Function> success;
-            v8::Global<v8::Function> fail;
-            v8::Isolate  * isolate;
-        };
-
         class HTTPClient : public std::enable_shared_from_this<HTTPClient> {
             boost::beast::tcp_stream stream_;
             boost::asio::ip::tcp::resolver resolver_;

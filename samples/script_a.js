@@ -6,12 +6,19 @@ class ModA extends Base{
     run(){
         console.log("xpto");
 
-        httpClient("google.com", "80", "/", 11, () => {
-            this.next();
-        }, () => {
-            console.log("erro");
-            this.next();
-        });
+        setTimeout(()=>{
+            console.log("setTimeout funfou");
+
+            httpClient("google.com", "80", "/", 11, () => {
+                this.next();
+            }, () => {
+                console.log("erro");
+                this.next();
+            });
+
+        }, 3000);
+
+
 
     }
 }

@@ -11,12 +11,20 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <iostream>
+#include "v8.h"
 
 namespace hydra {
     namespace bindings {
 
         class Async {
         public:
+
+            struct CallbackStruct{
+                v8::Global<v8::Function> success;
+                v8::Global<v8::Function> fail;
+                v8::Isolate  * isolate;
+            };
+
             static boost::asio::io_context IOC;
             static std::map<std::string, boost::asio::steady_timer*> timerMap;
 

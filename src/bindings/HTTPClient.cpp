@@ -48,84 +48,55 @@ namespace hydra {
                 return;
             }
 
-            CallbackStruct *cbStruct = new CallbackStruct();
+            hydra::bindings::Async::CallbackStruct *cbStruct = new hydra::bindings::Async::CallbackStruct();
 
             cbStruct->success.Reset(isolate,callback.As<v8::Function>());
             cbStruct->fail.Reset(isolate,callbackError.As<v8::Function>());
             cbStruct->isolate = isolate;
 
-//            std::make_shared<hydra::bindings::HTTPClient>(hydra::bindings::Async::IOC)->run(
-//                    std::string(*host).c_str(),
-//                    std::string(*port).c_str(),
-//                    std::string(*target).c_str(),
-//                    11, [cbStruct](){
-//
-//                        std::cout << "YYYYYY" << std::endl;
-//
-//                        boost::function<void(boost::system::error_code)> fn = [cbStruct](const boost::system::error_code&){
-//
-//                            std::cout << "ZZZZZZ" << std::endl;
-//
-//                            v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(
-//                                    cbStruct->isolate,
-//                                    cbStruct->success
-//                            );
-//                            v8::Local<v8::Value> result;
-//
-//                            v8::Local<v8::Function> cb = v8::Local<v8::Function>::New(
-//                                    cbStruct->isolate,
-//                                    callback.As<v8::Function>()
-//                            );
-//
-//                            if(cb.As<v8::Function>()->Call(
-//                                    cbStruct->isolate->GetCurrentContext(),
-//                                    v8::Undefined(cbStruct->isolate),
-//                                    0,
-//                                    NULL).ToLocal(&result)
-//                                    )
-//                            {
-//                                std::cout << "cb okx" << std::endl;
-//                            }
-//                            else
-//                            {
-//                                std::cout << "cb nokkk" << std::endl;
-//                            }
-//
-//                            delete cbStruct;
-//                        };
-//
-//                    }, [cbStruct, callbackError](boost::beast::error_code errorCode, char const* msg){
-//                        std::cout << "TODO handle error" << std::endl;
-//                        delete cbStruct;
-//                    });
+            std::make_shared<hydra::bindings::HTTPClient>(hydra::bindings::Async::IOC)->run(
+                    std::string(*host).c_str(),
+                    std::string(*port).c_str(),
+                    std::string(*target).c_str(),
+                    11, [cbStruct](){
+
+                        v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(
+                                cbStruct->isolate,
+                                cbStruct->success
+                        );
+                        v8::Local<v8::Value> result;
+
+                        v8::Local<v8::Function> cb = v8::Local<v8::Function>::New(
+                                cbStruct->isolate,
+                                callback.As<v8::Function>()
+                        );
+
+                        if(cb.As<v8::Function>()->Call(
+                                cbStruct->isolate->GetCurrentContext(),
+                                v8::Undefined(cbStruct->isolate),
+                                0,
+                                NULL).ToLocal(&result)
+                                )
+                        {
+                            std::cout << "cb okx" << std::endl;
+                        }
+                        else
+                        {
+                            std::cout << "cb nokkk" << std::endl;
+                        }
+
+                        delete cbStruct;
+
+                    }, [cbStruct, callbackError](boost::beast::error_code errorCode, char const* msg){
+                        std::cout << "TODO handle error" << std::endl;
+                        delete cbStruct;
+                    });
 
 
 
-            std::cout << "YYYYYY" << std::endl;
-
-//            boost::asio::steady_timer * t = new boost::asio::steady_timer(hydra::bindings::Async::IOC, boost::asio::chrono::seconds(5));
-//
-//            std::string uuid = hydra::bindings::Async::addTimer(t);
-//
-//            t->async_wait([uuid](boost::system::error_code const& e){
-//                hydra::bindings::Async::eraseTimer(uuid);
-//
-//                if (e == boost::asio::error::operation_aborted){
-//                    std::cout << "aborted" << std::endl;
-//                    return;
-//                }
-//
-//                //se nao for via add timer
-//                //delete t;
-//
-//                std::cout << " FFFFF" << std::endl;
-//            });
-//
-//            hydra::bindings::Async::eraseTimer(uuid);
-
-            std::string timer = hydra::bindings::Async::setTimeout([](){
-                std::cout << "aeee" << std::endl;
-            }, 5000);
+//            std::string timer = hydra::bindings::Async::setTimeout([](){
+//                std::cout << "aeee" << std::endl;
+//            }, 5000);
             //hydra::bindings::Async::eraseTimer(timer);
 
 //            std::string timer = hydra::bindings::Async::setInterval([](std::string uuid){

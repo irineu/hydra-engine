@@ -50,7 +50,9 @@ namespace hydra {
             t->expires_from_now(boost::asio::chrono::milliseconds (ms));
             t->async_wait([uuid, fn, ms](boost::system::error_code const& e){
 
+                //std::cout << "2st" << std::endl;
                 if (e == boost::asio::error::operation_aborted){
+                    //std::cout << "aborted" << std::endl;
                     return;
                 }
 
@@ -66,9 +68,9 @@ namespace hydra {
 
             t->async_wait([uuid, fn, ms](boost::system::error_code const& e){
 
-                std::cout << "1st" << std::endl;
+                //std::cout << "1st" << std::endl;
                 if (e == boost::asio::error::operation_aborted){
-                    std::cout << "aborted" << std::endl;
+                    //std::cout << "aborted" << std::endl;
                     return;
                 }
 
