@@ -7,7 +7,42 @@
 namespace hydra {
     namespace bindings {
 
-        boost::asio::io_context * hydra::bindings::Async::IOC;
+        boost::asio::io_context hydra::bindings::Async::IOC;
+        std::map<std::string, boost::asio::steady_timer*> hydra::bindings::Async::timerMap;
+
+        std::string  hydra::bindings::Async::addTimer(boost::asio::steady_timer *t) {
+            boost::uuids::uuid uuid = boost::uuids::random_generator()();
+            std::string strUUID = to_string(uuid);
+            hydra::bindings::Async::timerMap[strUUID] = t;
+            return strUUID;
+        }
+
+        void hydra::bindings::Async::eraseTimer(std::string uuid) {
+            if(Async::timerMap.find( uuid ) != Async::timerMap.end()){
+                Async::timerMap[uuid]->cancel();
+                delete Async::timerMap[uuid];
+                Async::timerMap.erase(uuid);
+            }
+        }
+
+        std::string hydra::bindings::Async::setTimeout(std::function<void()> fn, int ms) {
+
+            boost::asio::steady_timer * t = new boost::asio::steady_timer(hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (ms));
+            std::string uuid = hydra::bindings::Async::addTimer(t);
+
+            t->async_wait([uuid, fn](boost::system::error_code const& e){
+                hydra::bindings::Async::eraseTimer(uuid);
+
+                if (e == boost::asio::error::operation_aborted){
+                    std::cout << "aborted" << std::endl;
+                    return;
+                }
+
+                fn();
+            });
+
+            return uuid;
+        }
 
     } // hydra
 } // bindings

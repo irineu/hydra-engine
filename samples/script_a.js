@@ -12,5 +12,6 @@ class ModA extends Base{
             console.log("erro");
             this.next();
         });
+
     }
 }

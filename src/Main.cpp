@@ -9,6 +9,7 @@
 #include "bindings/HTTPClient.h"
 #include "bindings/Async.h"
 #include <boost/beast/core.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include "v8.h"
 #include "libplatform/libplatform.h"
@@ -49,11 +50,21 @@ int main(){
 //    MongoDAO dao;
 //    dao.connect();
 
-    boost::asio::io_context ioc;
-    hydra::bindings::Async::IOC = &ioc;
+    //boost::asio::io_context ioc;
+    //hydra::bindings::Async::IOC;
+
+    boost::asio::steady_timer myTimer(hydra::bindings::Async::IOC, boost::asio::chrono::seconds(5));
+
+    //boost::asio::steady_timer * myTimer2 = new boost::asio::steady_timer(hydra::bindings::Async::IOC, boost::asio::chrono::seconds(5));
+    //hydra::bindings::Async::myTimer = &myTimer;
+    //hydra::bindings::Async::timerVec.push_back(myTimer2);
+
+//    myTimer2->expires_from_now(boost::asio::chrono::seconds(5));
+//    myTimer2->async_wait([](boost::system::error_code const& err){
+//        std::cout << "bbbbb" << std::endl;
+//    });
 
     initializeV8();
-
 
     v8::Isolate::CreateParams create_params;
     create_params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
@@ -159,9 +170,6 @@ int main(){
         v8::Local<v8::Script> script = v8::Script::Compile(context, source).ToLocalChecked();
         v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
 
-        boost::asio::steady_timer t(ioc, boost::asio::chrono::seconds(1));
-        t.wait();
-
         v8::String::Utf8Value utf8(isolate, result);
         printf("output: %s\n", *utf8);
 
@@ -192,8 +200,8 @@ int main(){
             {
                 v8::TryCatch trycatch(isolate);
                 v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &rule_arg);
-
                 v8::MaybeLocal<v8::Value> foo_ret2 = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 1, &rule_arg);
+
 //              v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 0, NULL);
 
                 if (!foo_ret.IsEmpty()) {
@@ -246,7 +254,12 @@ int main(){
              */
         }
 
-        ioc.run();
+        boost::asio::steady_timer timer(hydra::bindings::Async::IOC, boost::asio::chrono::seconds(10));
+        timer.async_wait([](boost::system::error_code const& err){
+            std::cout << "dead" << std::endl;
+        });
+
+        hydra::bindings::Async::IOC.run();
     }
 
     isolate->Dispose();
