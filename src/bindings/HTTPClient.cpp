@@ -18,6 +18,8 @@ namespace hydra {
 //            std::cerr << what << ": " << ec.message() << "\n";
 //        }
 
+        int HTTPClient::i = 0;
+
         //static
          void HTTPClient::handler(const v8::FunctionCallbackInfo <v8::Value> &args){
 
@@ -124,8 +126,20 @@ namespace hydra {
             std::string timer = hydra::bindings::Async::setTimeout([](){
                 std::cout << "aeee" << std::endl;
             }, 5000);
+            //hydra::bindings::Async::eraseTimer(timer);
 
-            hydra::bindings::Async::eraseTimer(timer);
+//            std::string timer = hydra::bindings::Async::setInterval([](std::string uuid){
+//
+//                if(HTTPClient::i >= 10){
+//                    std::cout << "clear " << HTTPClient::i << " " << uuid << std::endl;
+//                    hydra::bindings::Async::eraseTimer(uuid);
+//                    return;
+//                }
+//
+//                HTTPClient::i++;
+//
+//                std::cout << "aeee " << HTTPClient::i << " " << uuid << std::endl;
+//            }, 2000);
 
         }
 

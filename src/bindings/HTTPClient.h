@@ -43,6 +43,8 @@ namespace hydra {
             void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
             void on_read(boost::beast::error_code ec,std::size_t bytes_transferred);
 
+            static int i;
+
             static void handler(const v8::FunctionCallbackInfo <v8::Value> &args);
         };
     } // hydra

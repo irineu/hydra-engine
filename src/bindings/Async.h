@@ -24,6 +24,7 @@ namespace hydra {
             static void eraseTimer(std::string uuid);
 
             static std::string setTimeout(std::function<void()> fn, int ms);
+            static std::string setInterval(std::function<void(std::string)> fn, int ms);
         };
 
     } // hydra
