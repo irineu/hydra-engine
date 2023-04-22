@@ -6,8 +6,12 @@ class ModA extends Base{
     run(){
         console.log("xpto");
 
-        setTimeout(()=>{
-            console.log("setTimeout funfou");
+        setTimeout((arg0, arg1, arg2)=>{
+
+            console.log(arg0);
+            console.log(arg1);
+            console.log(arg2);
+            console.log("setTimeout funfou", arg0, arg1, arg2);
 
             httpClient("google.com", "80", "/", 11, () => {
                 this.next();
@@ -16,7 +20,7 @@ class ModA extends Base{
                 this.next();
             });
 
-        }, 3000);
+        }, 3000, "A", "B", 99);
 
 
 

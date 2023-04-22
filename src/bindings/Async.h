@@ -22,7 +22,8 @@ namespace hydra {
             struct CallbackStruct{
                 v8::Global<v8::Function> success;
                 v8::Global<v8::Function> fail;
-                v8::Isolate  * isolate;
+                v8::Global<v8::Array> args;
+                v8::Isolate * isolate;
             };
 
             static boost::asio::io_context IOC;

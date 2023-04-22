@@ -107,6 +107,16 @@ namespace hydra {
             cbStruct->success.Reset(isolate,callback.As<v8::Function>());
             cbStruct->isolate = isolate;
 
+            v8::Local<v8::Array> repassArgs = v8::Array::New(isolate, args.Length());
+
+            for(int i = 0; i < args.Length(); i++){
+                repassArgs->Set(ctx,i, args[i]);
+            }
+
+            cbStruct->args.Reset(isolate, repassArgs.As<v8::Array>());
+
+            std::cout << repassArgs->Length() << std::endl;
+
             std::string timer = hydra::bindings::Async::setTimeout([cbStruct](){
                 std::cout << "aeee" << std::endl;
 
@@ -123,11 +133,26 @@ namespace hydra {
                     return;
                 }
 
+                v8::Local<v8::Array> args = v8::Local<v8::Array>::New(
+                        cbStruct->isolate,
+                        cbStruct->args
+                );
+
+                int argLen = args->Length();
+
+                std::cout << argLen << std::endl;
+
+                v8::Handle<v8::Value> repassArgs[argLen - 2];
+
+                for(int i = 2, j = 0; i < argLen; i++, j++){
+                    repassArgs[j] = args->Get(cbStruct->isolate->GetCurrentContext(), i).ToLocalChecked();
+                }
+
                 if(callback.As<v8::Function>()->Call(
                         cbStruct->isolate->GetCurrentContext(),
                         v8::Undefined(cbStruct->isolate),
-                        0,
-                        NULL).ToLocal(&result)
+                        argLen - 2,
+                        repassArgs).ToLocal(&result)
                         )
                 {
                     std::cout << "cb okxxx" << std::endl;
