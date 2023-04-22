@@ -80,5 +80,86 @@ namespace hydra {
             return uuid;
         }
 
+        void Async::setTimeoutHandler(const v8::FunctionCallbackInfo <v8::Value> &args) {
+
+            v8::Local<v8::Value> callback = args[0];
+            v8::Local<v8::Value> ms = args[1];
+
+            if(!callback->IsFunction())
+            {
+                std::cout << "bad cb" << std::endl;
+                return;
+            }
+
+            if(!ms->IsInt32())
+            {
+                std::cout << "bad ms" << std::endl;
+                return;
+            }
+
+            std::cout << "args length: " << args.Length() << ", duration: " << ms.As<v8::Int32>()->Value() << std::endl;
+
+            v8::Isolate  * isolate = args.GetIsolate();
+            v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+
+            hydra::bindings::Async::CallbackStruct *cbStruct = new hydra::bindings::Async::CallbackStruct();
+
+            cbStruct->success.Reset(isolate,callback.As<v8::Function>());
+            cbStruct->isolate = isolate;
+
+            std::string timer = hydra::bindings::Async::setTimeout([cbStruct](){
+                std::cout << "aeee" << std::endl;
+
+                v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(
+                        cbStruct->isolate,
+                        cbStruct->success
+                );
+
+                v8::Local<v8::Value> result;
+
+                if(!callback->IsFunction())
+                {
+                    std::cout << "bad cb" << std::endl;
+                    return;
+                }
+
+                if(callback.As<v8::Function>()->Call(
+                        cbStruct->isolate->GetCurrentContext(),
+                        v8::Undefined(cbStruct->isolate),
+                        0,
+                        NULL).ToLocal(&result)
+                        )
+                {
+                    std::cout << "cb okxxx" << std::endl;
+                }
+                else
+                {
+                    std::cout << "cb nok" << std::endl;
+                }
+
+            }, ms.As<v8::Int32>()->Value());
+            //hydra::bindings::Async::eraseTimer(timer);
+
+
+            /*v8::Handle<v8::Value> param_args [] = {
+                    v8::String::NewFromUtf8(isolate,"Hello").ToLocalChecked()
+            };
+
+            if(callback.As<v8::Function>()->Call(
+                    ctx,
+                    v8::Undefined(isolate),
+                    1,
+                    param_args).ToLocal(&result)
+                    )
+            {
+                std::cout << "cb ok" << std::endl;
+            }
+            else
+            {
+                std::cout << "cb nok" << std::endl;
+            }*/
+
+        }
+
     } // hydra
 } // bindings
