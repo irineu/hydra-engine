@@ -139,10 +139,11 @@ namespace hydra {
                 );
 
                 int argLen = args->Length();
+                int repassArgLen = argLen - 2;
 
                 std::cout << argLen << std::endl;
 
-                v8::Handle<v8::Value> repassArgs[argLen - 2];
+                v8::Handle<v8::Value> repassArgs[repassArgLen];
 
                 for(int i = 2, j = 0; i < argLen; i++, j++){
                     repassArgs[j] = args->Get(cbStruct->isolate->GetCurrentContext(), i).ToLocalChecked();
@@ -151,7 +152,7 @@ namespace hydra {
                 if(callback.As<v8::Function>()->Call(
                         cbStruct->isolate->GetCurrentContext(),
                         v8::Undefined(cbStruct->isolate),
-                        argLen - 2,
+                        repassArgLen,
                         repassArgs).ToLocal(&result)
                         )
                 {
