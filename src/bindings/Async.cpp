@@ -7,7 +7,7 @@
 namespace hydra {
     namespace bindings {
 
-        boost::asio::io_context hydra::bindings::Async::IOC;
+        boost::asio::io_context * hydra::bindings::Async::IOC;
         std::map<std::string, boost::asio::steady_timer*> hydra::bindings::Async::timerMap;
 
         std::string  hydra::bindings::Async::addTimer(boost::asio::steady_timer *t) {
@@ -27,7 +27,7 @@ namespace hydra {
 
         std::string hydra::bindings::Async::setTimeout(std::function<void()> fn, int ms) {
 
-            boost::asio::steady_timer * t = new boost::asio::steady_timer(hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (ms));
+            boost::asio::steady_timer * t = new boost::asio::steady_timer(*hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (ms));
             std::string uuid = hydra::bindings::Async::addTimer(t);
 
             t->async_wait([uuid, fn](boost::system::error_code const& e){
@@ -63,7 +63,7 @@ namespace hydra {
         }
 
         std::string hydra::bindings::Async::setInterval(std::function<void(std::string)> fn, int ms) {
-            boost::asio::steady_timer * t = new boost::asio::steady_timer(hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (ms));
+            boost::asio::steady_timer * t = new boost::asio::steady_timer(*hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (ms));
             std::string uuid = hydra::bindings::Async::addTimer(t);
 
             t->async_wait([uuid, fn, ms](boost::system::error_code const& e){

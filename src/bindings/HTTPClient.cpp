@@ -54,7 +54,7 @@ namespace hydra {
             cbStruct->fail.Reset(isolate,callbackError.As<v8::Function>());
             cbStruct->isolate = isolate;
 
-            std::make_shared<hydra::bindings::HTTPClient>(hydra::bindings::Async::IOC)->run(
+            std::make_shared<hydra::bindings::HTTPClient>(*hydra::bindings::Async::IOC)->run(
                     std::string(*host).c_str(),
                     std::string(*port).c_str(),
                     std::string(*target).c_str(),

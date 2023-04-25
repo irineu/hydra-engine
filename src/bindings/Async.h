@@ -26,7 +26,7 @@ namespace hydra {
                 v8::Isolate * isolate;
             };
 
-            static boost::asio::io_context IOC;
+            static boost::asio::io_context * IOC;
             static std::map<std::string, boost::asio::steady_timer*> timerMap;
 
             static std::string addTimer(boost::asio::steady_timer* t);

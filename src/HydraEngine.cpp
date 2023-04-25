@@ -6,7 +6,8 @@
 
 namespace hydra {
 
-    hydra::HydraEngine::HydraEngine(){
+    hydra::HydraEngine::HydraEngine(boost::asio::io_context * ctx){
+        hydra::bindings::Async::IOC = ctx;
         this->setupLog();
         this->initializeV8();
     }

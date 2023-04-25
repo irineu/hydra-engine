@@ -25,8 +25,8 @@ namespace hydra {
 
     class HydraEngine {
     public:
-        HydraEngine();
-        HydraEngine(quill::Logger* logger);
+        HydraEngine(boost::asio::io_context * ctx);
+        HydraEngine(boost::asio::io_context * ctx, quill::Logger* logger);
         void start();
         void exec();
 

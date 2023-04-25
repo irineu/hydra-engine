@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include <boost/beast/core.hpp>
+
 //#include <fstream>
 //#include "dao/MongoDAO.h"
 //#include "bindings/Console.h"
@@ -22,7 +24,9 @@
 
 int main(){
 
-    hydra::HydraEngine engine;
+    boost::asio::io_context * ctx = new boost::asio::io_context();
+
+    hydra::HydraEngine engine(ctx);
     engine.start();
     engine.exec();
     engine.exec();
