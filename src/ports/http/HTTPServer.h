@@ -31,7 +31,9 @@ class HTTPServer {
 
 public:
     HTTPServer(hydra::HydraEngine * engine);
-    template <class Body, class Allocator> static http::message_generator handle_request(beast::string_view doc_root, http::request<Body, http::basic_fields<Allocator>>&& req);
+    //template <class Body, class Allocator> static http::message_generator handle_request(beast::string_view doc_root, http::request<Body, http::basic_fields<Allocator>>&& req);
+    static http::message_generator handle_request(beast::string_view doc_root, http::request<http::string_body>&& req);
+
     void startServer(boost::asio::io_context * ctx);
     static hydra::HydraEngine * engine_;
 private:

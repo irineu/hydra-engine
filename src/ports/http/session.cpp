@@ -3,6 +3,7 @@
 //
 
 #include "session.h"
+#include "HTTPServer.h"
 
 session::session(tcp::socket &&socket, const std::shared_ptr<const std::string> &doc_root)  : stream_(std::move(socket)), doc_root_(doc_root){
 }
@@ -72,4 +73,22 @@ void session::do_close() {
     stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
 
     // At this point the connection is closed gracefully
+}
+
+void session::on_read(beast::error_code ec, std::size_t bytes_transferred) {
+    boost::ignore_unused(bytes_transferred);
+
+    // This means they closed the connection
+    if(ec == http::error::end_of_stream)
+        return do_close();
+
+    if(ec){
+        std::cerr << "on read error: " << ec << std::endl;
+        return;
+    }
+
+
+    // Send the response
+    send_response(
+            HTTPServer::handle_request(*doc_root_, std::move(req_)));
 }

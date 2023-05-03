@@ -10,7 +10,7 @@ hydra::HydraEngine * HTTPServer::engine_;
 void
 fail(beast::error_code ec, char const* what)
 {
-    std::cerr << what << ": " << ec.message() << "\n";
+    std::cerr << what << ":>> " << ec.message() << "\n";
 }
 
 HTTPServer::HTTPServer(hydra::HydraEngine * engine){
@@ -76,9 +76,9 @@ std::string path_cat(
     return result;
 }
 
-template <class Body, class Allocator> http::message_generator HTTPServer::handle_request(
+http::message_generator HTTPServer::handle_request(
         beast::string_view doc_root,
-        http::request<Body, http::basic_fields<Allocator>>&& req)
+        http::request<http::string_body>&& req)
 {
 
     HTTPServer::engine_->exec();
@@ -197,22 +197,4 @@ void HTTPServer::startServer(boost::asio::io_context * ctx) {
         });
     }
     ctx->run();
-}
-
-void session::on_read(beast::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-
-    // This means they closed the connection
-    if(ec == http::error::end_of_stream)
-        return do_close();
-
-    if(ec){
-        std::cerr << ec << std::endl;
-        return;
-    }
-
-
-    // Send the response
-    send_response(
-            HTTPServer::handle_request(*doc_root_, std::move(req_)));
 }
