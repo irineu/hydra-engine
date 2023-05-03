@@ -18,6 +18,8 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include "session.h"
+#include "../../HydraEngine.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -26,9 +28,13 @@ using tcp = boost::asio::ip::tcp;
 
 class HTTPServer {
 
-public:
-    template <class Body, class Allocator> static http::message_generator handle_request(beast::string_view doc_root, http::request<Body, http::basic_fields<Allocator>>&& req);
 
+public:
+    HTTPServer(hydra::HydraEngine * engine);
+    template <class Body, class Allocator> static http::message_generator handle_request(beast::string_view doc_root, http::request<Body, http::basic_fields<Allocator>>&& req);
+    void startServer(boost::asio::io_context * ctx);
+    static hydra::HydraEngine * engine_;
+private:
 
 };
 

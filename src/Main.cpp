@@ -20,19 +20,22 @@
 //#include "v8-function-callback.h"
 
 #include "HydraEngine.h"
-
+#include "ports/http/HTTPServer.h"
 
 int main(){
 
     boost::asio::io_context * ctx = new boost::asio::io_context();
 
-    hydra::HydraEngine engine(ctx);
-    engine.start();
-    engine.exec();
-    engine.exec();
-    engine.exec();
-    engine.exec();
-    engine.exec();
+    hydra::HydraEngine * engine = new hydra::HydraEngine(ctx);
+    engine->start();
+    engine->exec();
+//    engine.exec();
+//    engine.exec();
+//    engine.exec();
+//    engine.exec();
+
+    HTTPServer server(engine);
+    server.startServer(ctx);
 
 
     std::cout << "Hello World!" << std::endl;
