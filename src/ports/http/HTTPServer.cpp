@@ -81,7 +81,9 @@ http::message_generator HTTPServer::handle_request(
         http::request<http::string_body>&& req)
 {
 
-    HTTPServer::engine_->exec();
+    HTTPServer::engine_->exec([]{
+
+    });
 
     // Returns a bad request response
     auto const bad_request =

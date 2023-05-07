@@ -74,9 +74,11 @@ this.rule = {
     },
 }
 
-this.run = (s) => {
-    //console.log(JSON.stringify(s))
-    console.log("a")
+this.run = (rule, ctx) => {
+    console.log(JSON.stringify(rule))
+    console.log(JSON.stringify(ctx))
+    //console.log("a")
+    //done(ctx);
     return 0;
 }
 //run(rule);

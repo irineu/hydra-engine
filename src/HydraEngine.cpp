@@ -4,6 +4,10 @@
 
 #include "HydraEngine.h"
 
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+
 namespace hydra {
 
     hydra::HydraEngine::HydraEngine(boost::asio::io_context * ctx){
@@ -124,6 +128,25 @@ namespace hydra {
                     v8::String::NewFromUtf8(this->isolate_, "setTimeout", v8::NewStringType::kNormal).ToLocalChecked(),
                     v8::FunctionTemplate::New(this->isolate_, hydra::bindings::Async::setTimeoutHandler));
 
+            global_template->Set(
+                    v8::String::NewFromUtf8(this->isolate_, "end", v8::NewStringType::kNormal).ToLocalChecked(),
+                    v8::FunctionTemplate::New(this->isolate_, [](const v8::FunctionCallbackInfo <v8::Value> &args){
+
+                        v8::Isolate  * isolate = args.GetIsolate();
+                        v8::Local<v8::Value> argCtx = args[0];
+
+                        if(!argCtx->IsString())
+                        {
+                            std::cout << "bad ctx" << std::endl;
+                            return;
+                        }
+
+                        v8::String::Utf8Value strCtx(isolate, argCtx);
+
+
+                        std::cout << "DOOONEEE" << std::endl;
+                    })
+            );
 
 
             v8::Local<v8::Context> context = v8::Context::New(this->isolate_, NULL, global_template);
@@ -158,13 +181,14 @@ namespace hydra {
 //        }
 
 
-
             v8::Handle<v8::Object> global_output = this->isolate_->GetCurrentContext()->Global();
-            this->runFunction_ = global_output->Get(context, v8::String::NewFromUtf8(this->isolate_,"run").ToLocalChecked()).ToLocalChecked();
-            this->rule___ = global_output->Get(context, v8::String::NewFromUtf8(this->isolate_,"rule").ToLocalChecked()).ToLocalChecked();;
+
+            v8::Handle<v8::Value> runFunc = global_output->Get(this->context_, v8::String::NewFromUtf8(this->isolate_,"run").ToLocalChecked()).ToLocalChecked();
+            //v8::Handle<v8::Value> rule = global_output->Get(this->context_, v8::String::NewFromUtf8(this->isolate_,"rule").ToLocalChecked()).ToLocalChecked();;
+
             this->context_ = context;
 
-            if ((*this->runFunction_)->IsFunction()) {
+            if ((*runFunc)->IsFunction()) {
                 LOG_INFO(this->logger_, "Engine started!");
             }else{
                 LOG_CRITICAL(this->logger_, "No run function detected on code!");
@@ -190,7 +214,9 @@ namespace hydra {
          */
     }
 
-    void hydra::HydraEngine::exec() {
+    void hydra::HydraEngine::exec(std::function<void()> fn) {
+
+        boost::uuids::uuid uuid = boost::uuids::random_generator()();
 
         v8::Isolate::Scope isolate_scope(this->isolate_);
         v8::HandleScope handle_scope(this->isolate_);
@@ -206,22 +232,30 @@ namespace hydra {
 
         //v8::Local<v8::Value> foo_arg = v8::String::NewFromUtf8(isolate, "arg from C++").ToLocalChecked();
 
+        v8::Handle<v8::Value> runFunc = global_output->Get(this->context_, v8::String::NewFromUtf8(this->isolate_,"run").ToLocalChecked()).ToLocalChecked();
+        v8::Handle<v8::Value> rule = global_output->Get(this->context_, v8::String::NewFromUtf8(this->isolate_,"rule").ToLocalChecked()).ToLocalChecked();;
+
+
         v8::Local<v8::Value> rule_arg = v8::Handle<v8::Value>::New(
                 this->isolate_,
-                this->rule___
+                rule
                 ).As<v8::Value>();
 
+        int arglen = 2;
+        v8::Handle<v8::Value> args[arglen];
+        args[0] = rule_arg;
+        args[1] = v8::String::NewFromUtf8(this->isolate_, to_string(uuid).c_str()).ToLocalChecked();
 
         v8::Handle<v8::Value> rf = v8::Handle<v8::Value>::New(
                 this->isolate_,
-                this->runFunction_
+                runFunc
                 );
 
         {
             v8::TryCatch trycatch(this->isolate_);
 
             v8::MaybeLocal<v8::Value> foo_ret = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), 0, NULL);
-            v8::MaybeLocal<v8::Value> foo_ret2 = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), 1, &rule_arg);
+            v8::MaybeLocal<v8::Value> foo_ret2 = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), arglen, args);
 //                  v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 0, NULL);
 
             if (!foo_ret.IsEmpty()) {

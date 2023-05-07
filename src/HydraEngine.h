@@ -28,7 +28,7 @@ namespace hydra {
         HydraEngine(boost::asio::io_context * ctx);
         HydraEngine(boost::asio::io_context * ctx, quill::Logger* logger);
         void start();
-        void exec();
+        void exec(std::function<void()> fn);
 
     private:
         void initializeV8();
@@ -40,9 +40,6 @@ namespace hydra {
         std::unique_ptr<v8::Platform> platform_;
         v8::Isolate * isolate_;
         v8::Local<v8::Context> context_;
-
-        v8::Handle<v8::Value> runFunction_;
-        v8::Handle<v8::Value> rule___;
     };
 
 } // hydra
