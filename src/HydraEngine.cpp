@@ -10,6 +10,8 @@
 
 namespace hydra {
 
+    std::map<std::string, std::function<void()>> hydra::HydraEngine::cbMap;
+
     hydra::HydraEngine::HydraEngine(boost::asio::io_context * ctx){
         hydra::bindings::Async::IOC = ctx;
         this->setupLog();
@@ -142,9 +144,8 @@ namespace hydra {
                         }
 
                         v8::String::Utf8Value strCtx(isolate, argCtx);
-
-
-                        std::cout << "DOOONEEE" << std::endl;
+                        std::cout << "DOOONEEE " << *strCtx << std::endl;
+                        cbMap[*strCtx]();
                     })
             );
 
@@ -217,6 +218,8 @@ namespace hydra {
     void hydra::HydraEngine::exec(std::function<void()> fn) {
 
         boost::uuids::uuid uuid = boost::uuids::random_generator()();
+
+        cbMap[to_string(uuid)] = fn;
 
         v8::Isolate::Scope isolate_scope(this->isolate_);
         v8::HandleScope handle_scope(this->isolate_);

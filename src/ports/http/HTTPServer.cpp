@@ -80,11 +80,6 @@ http::message_generator HTTPServer::handle_request(
         beast::string_view doc_root,
         http::request<http::string_body>&& req)
 {
-
-    HTTPServer::engine_->exec([]{
-
-    });
-
     // Returns a bad request response
     auto const bad_request =
             [&req](beast::string_view why)

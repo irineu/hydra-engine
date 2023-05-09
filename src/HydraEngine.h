@@ -40,6 +40,8 @@ namespace hydra {
         std::unique_ptr<v8::Platform> platform_;
         v8::Isolate * isolate_;
         v8::Local<v8::Context> context_;
+
+        static std::map<std::string, std::function<void()>> cbMap;
     };
 
 } // hydra

@@ -28,7 +28,9 @@ int main(){
 
     hydra::HydraEngine * engine = new hydra::HydraEngine(ctx);
     engine->start();
-    engine->exec([]{});
+    engine->exec([]{
+        std::cout << "uhuul" << std::endl;
+    });
 //    engine.exec();
 //    engine.exec();
 //    engine.exec();

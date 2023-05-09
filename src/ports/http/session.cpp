@@ -87,8 +87,10 @@ void session::on_read(beast::error_code ec, std::size_t bytes_transferred) {
         return;
     }
 
+    HTTPServer::engine_->exec([&]{
+        // Send the response
+        std::cout << "xpto" << std::endl;
+        send_response(HTTPServer::handle_request(*doc_root_, std::move(req_)));
+    });
 
-    // Send the response
-    send_response(
-            HTTPServer::handle_request(*doc_root_, std::move(req_)));
 }
