@@ -82,6 +82,13 @@ namespace hydra {
 
         void Async::setTimeoutHandler(const v8::FunctionCallbackInfo <v8::Value> &args) {
 
+
+            v8::Persistent<v8::Context> context;
+
+            //v8::EscapableHandleScope handle_scope(args.GetIsolate());
+
+            context.Reset(args.GetIsolate(), args.GetIsolate()->GetCurrentContext());
+
             v8::Local<v8::Value> callback = args[0];
             v8::Local<v8::Value> ms = args[1];
 
@@ -99,18 +106,28 @@ namespace hydra {
 
             std::cout << "args length: " << args.Length() << ", duration: " << ms.As<v8::Int32>()->Value() << std::endl;
 
-            v8::Isolate  * isolate = args.GetIsolate();
-            v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+            v8::Isolate * isolate = args.GetIsolate();
+            //v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
 
-            hydra::bindings::Async::CallbackStruct *cbStruct = new hydra::bindings::Async::CallbackStruct();
+            hydra::bindings::Async::CallbackStruct * cbStruct = new hydra::bindings::Async::CallbackStruct();
 
-            cbStruct->success.Reset(isolate,callback.As<v8::Function>());
+            v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> persistent(isolate, callback.As<v8::Function>());
+            //v8::Persistent<v8::Function> pcb(isolate, callback.As<v8::Function>());
+
+            const v8::Local<v8::Function> cb = callback.As<v8::Function>();
+
+            v8::Persistent<v8::Function> cbx;
+            cbx.Reset(isolate, cb);
+
+
+            cbStruct->success = cbx;
             cbStruct->isolate = isolate;
+            cbStruct->ctx = context;
 
             v8::Local<v8::Array> repassArgs = v8::Array::New(isolate, args.Length());
 
             for(int i = 0; i < args.Length(); i++){
-                repassArgs->Set(ctx,i, args[i]);
+                repassArgs->Set(context.Get(isolate),i, args[i]);
             }
 
             cbStruct->args.Reset(isolate, repassArgs.As<v8::Array>());
@@ -118,12 +135,10 @@ namespace hydra {
             std::cout << repassArgs->Length() << std::endl;
 
             std::string timer = hydra::bindings::Async::setTimeout([cbStruct](){
-                std::cout << "aeee" << std::endl;
 
-                v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(
-                        cbStruct->isolate,
-                        cbStruct->success
-                );
+                v8::HandleScope handle_scope(cbStruct->isolate);
+                v8::Local<v8::Context> ctx = cbStruct->ctx.Get(cbStruct->isolate);
+                v8::Local<v8::Function> callback = cbStruct->success.Get(cbStruct->isolate);
 
                 v8::Local<v8::Value> result;
 
@@ -146,11 +161,11 @@ namespace hydra {
                 v8::Handle<v8::Value> repassArgs[repassArgLen];
 
                 for(int i = 2, j = 0; i < argLen; i++, j++){
-                    repassArgs[j] = args->Get(cbStruct->isolate->GetCurrentContext(), i).ToLocalChecked();
+                    repassArgs[j] = args->Get(ctx, i).ToLocalChecked();
                 }
 
                 if(callback.As<v8::Function>()->Call(
-                        cbStruct->isolate->GetCurrentContext(),
+                        ctx,
                         v8::Undefined(cbStruct->isolate),
                         repassArgLen,
                         repassArgs).ToLocal(&result)
@@ -162,6 +177,8 @@ namespace hydra {
                 {
                     std::cout << "cb nok" << std::endl;
                 }
+
+                delete cbStruct;
 
             }, ms.As<v8::Int32>()->Value());
             //hydra::bindings::Async::eraseTimer(timer);

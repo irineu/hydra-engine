@@ -21,6 +21,10 @@
 
 #include "HydraEngine.h"
 #include "ports/http/HTTPServer.h"
+#include <chrono>
+#include <thread>
+
+using namespace std::chrono_literals;
 
 int main(){
 
@@ -28,17 +32,37 @@ int main(){
 
     hydra::HydraEngine * engine = new hydra::HydraEngine(ctx);
     engine->start();
-    engine->exec([]{
-        std::cout << "uhuul" << std::endl;
+
+//    engine->exec([engine]{
+//        std::cout << "uhuul" << std::endl;
+//    });
+
+
+
+//    engine.exec();
+//    engine.exec();
+//    engine.exec();
+//    engine.exec();
+
+    auto t = std::thread([&]{
+
+
+        while(session::count <= 3){
+            std::this_thread::sleep_for(3000ms);
+        }
+        if(session::count > 3){
+            std::cout << "stop from thread" << std::endl;
+            ctx->stop();
+        }
+
     });
-//    engine.exec();
-//    engine.exec();
-//    engine.exec();
-//    engine.exec();
+
 
     HTTPServer server(engine);
     server.startServer(ctx);
 
+
+    t.join();
 
     std::cout << "Hello World!" << std::endl;
 }

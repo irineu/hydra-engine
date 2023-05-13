@@ -29,6 +29,7 @@ namespace hydra {
         HydraEngine(boost::asio::io_context * ctx, quill::Logger* logger);
         void start();
         void exec(std::function<void()> fn);
+        void shutdown();
 
     private:
         void initializeV8();

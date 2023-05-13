@@ -4,37 +4,6 @@ let scripts = {
     c : new ModC()
 }
 
-function run2(s){
-
-    console.log("arg:");
-    //console.log(s);
-
-    // if(s.script && Object.keys(s.events).length > 0){
-    //     let script = scripts[s.script];
-    //
-    //     Object.keys(s.events).forEach(e => {
-    //         if(s.events[e].script){
-    //             script[e] = () => {
-    //                 run(s.events[e]);
-    //             }
-    //         }else if(e == 'error'){
-    //             script[e] = () => {
-    //                 console.log("on error!!");
-    //             }
-    //
-    //         }else{
-    //             console.log("event not set");
-    //         }
-    //
-    //     });
-    //     console.log("----")
-    //     script.run();
-    // }else{
-    //     console.log(s);
-    //     console.log("done end finish");
-    // }
-}
-
 this.rule = {
     script: "a",
     events: {
@@ -75,11 +44,40 @@ this.rule = {
 }
 
 this.run = (rule, ctx) => {
+
+    console.log("Running: " + ctx + ":" + rule.script);
+
+    if(rule.script && Object.keys(rule.events).length > 0){
+        let script = scripts[rule.script];
+
+        Object.keys(rule.events).forEach(e => {
+            if(rule.events[e].script){
+                script[e] = () => {
+                    run(rule.events[e], ctx);
+                }
+            }else if(e == 'error'){
+                script[e] = () => {
+                    //console.log("on error!!");
+                }
+
+            }else{
+                //console.log("event not set");
+            }
+
+        });
+        script.run();
+    }else{
+        //console.log("done end finish");
+        end(ctx);
+    }
+
+
+
     //console.log(JSON.stringify(rule))
     //console.log(JSON.stringify(ctx))
 
     //console.log("a")
-    end(ctx);
+
     return 0;
 }
 //run(rule);

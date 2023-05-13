@@ -4,6 +4,7 @@
 
 #include "HTTPServer.h"
 #include "listener.h"
+#include <boost/asio/signal_set.hpp>
 
 hydra::HydraEngine * HTTPServer::engine_;
 
@@ -185,6 +186,14 @@ void HTTPServer::startServer(boost::asio::io_context * ctx) {
 
     std::make_shared<listener>(*ctx, tcp::endpoint{address, port}, doc_root)->run();
 
+    boost::asio::signal_set signals(*ctx, SIGINT, SIGTERM);
+    signals.async_wait(
+            [&](boost::system::error_code const&, int)
+            {
+                engine_->shutdown();
+                ctx->stop();
+            });
+
     std::vector<std::thread> v;
 
     v.reserve(threads -1);
@@ -194,4 +203,10 @@ void HTTPServer::startServer(boost::asio::io_context * ctx) {
         });
     }
     ctx->run();
+
+
+    for(auto& t : v)
+        t.join();
+
+
 }

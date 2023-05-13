@@ -20,10 +20,11 @@ namespace hydra {
         public:
 
             struct CallbackStruct{
-                v8::Global<v8::Function> success;
+                v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>>success;
                 v8::Global<v8::Function> fail;
                 v8::Global<v8::Array> args;
                 v8::Isolate * isolate;
+                v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> ctx;
             };
 
             static boost::asio::io_context * IOC;

@@ -4,10 +4,10 @@ class ModB extends Base{
     }
 
     run(){
-        console.log("hueheueh");
+        //console.log("hueheueh");
         setTimeout(()=>{
-            console.log("sucesso2");
+            //console.log("sucesso2");
             this.next();
-        }, 4000);
+        }, 500);
     }
 }

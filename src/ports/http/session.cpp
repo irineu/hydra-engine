@@ -8,6 +8,7 @@
 session::session(tcp::socket &&socket, const std::shared_ptr<const std::string> &doc_root)  : stream_(std::move(socket)), doc_root_(doc_root){
 }
 
+int session::count = 0;
 
 void session::run() {
     // We need to be executing within a strand to perform async operations
@@ -21,6 +22,15 @@ void session::run() {
 }
 
 void session::do_read() {
+
+    // Construct a new parser for each message
+    parser_.emplace();
+
+    // Apply a reasonable limit to the allowed size
+    // of the body in bytes to prevent abuse.
+    parser_->body_limit(10000);
+
+
     // Make the request empty before reading,
     // otherwise the operation behavior is undefined.
     req_ = {};
@@ -29,7 +39,12 @@ void session::do_read() {
     stream_.expires_after(std::chrono::seconds(30));
 
     // Read a request
-    http::async_read(stream_, buffer_, req_,
+//    http::async_read(stream_, buffer_,  *parser_,
+//                     beast::bind_front_handler(
+//                             &session::on_read,
+//                             shared_from_this()));
+
+    http::async_read(stream_, buffer_,  req_,
                      beast::bind_front_handler(
                              &session::on_read,
                              shared_from_this()));
@@ -87,10 +102,17 @@ void session::on_read(beast::error_code ec, std::size_t bytes_transferred) {
         return;
     }
 
-    HTTPServer::engine_->exec([&]{
+    std::shared_ptr<session> s = shared_from_this();
+
+    session::count++;
+
+    HTTPServer::engine_->exec([s]{
         // Send the response
-        std::cout << "xpto" << std::endl;
-        send_response(HTTPServer::handle_request(*doc_root_, std::move(req_)));
+        std::cerr << "xxxx " << std::endl;
+
+        //s->send_response(HTTPServer::handle_request(*(s->doc_root_), s->parser_->release()));
+        s->send_response(HTTPServer::handle_request(*(s->doc_root_), std::move(s->req_)));
     });
+
 
 }

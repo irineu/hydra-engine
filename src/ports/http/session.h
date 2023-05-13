@@ -32,6 +32,10 @@ class session : public std::enable_shared_from_this<session>{
     http::request<http::string_body> req_;
 
 public:
+
+    static int count;
+    boost::optional<http::request_parser<http::string_body>> parser_;
+
     session(
             tcp::socket&& socket,
             std::shared_ptr<std::string const> const& doc_root);

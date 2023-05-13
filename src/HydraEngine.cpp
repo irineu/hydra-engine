@@ -7,6 +7,9 @@
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include <boost/asio.hpp>
+
+using namespace std::chrono_literals;
 
 namespace hydra {
 
@@ -100,6 +103,25 @@ namespace hydra {
         code.append("\r\n");
 
         return code;
+    }
+
+    void hydra::HydraEngine::shutdown() {
+        this->isolate_->Dispose();
+        v8::V8::Dispose();
+        v8::V8::DisposePlatform();
+
+//        boost::asio::steady_timer * t = new boost::asio::steady_timer(*hydra::bindings::Async::IOC, boost::asio::chrono::milliseconds (5000));
+//        std::string uuid = hydra::bindings::Async::addTimer(t);
+//
+//        t->async_wait([](boost::system::error_code const& e){
+//
+//            if (e == boost::asio::error::operation_aborted){
+//                return;
+//            }
+//            hydra::bindings::Async::IOC->stop();
+//        });
+
+
     }
 
     void hydra::HydraEngine::start() {
@@ -221,6 +243,8 @@ namespace hydra {
 
         cbMap[to_string(uuid)] = fn;
 
+        std::cout << "store: " <<  to_string(uuid) << std::endl;
+
         v8::Isolate::Scope isolate_scope(this->isolate_);
         v8::HandleScope handle_scope(this->isolate_);
 
@@ -249,25 +273,20 @@ namespace hydra {
         args[0] = rule_arg;
         args[1] = v8::String::NewFromUtf8(this->isolate_, to_string(uuid).c_str()).ToLocalChecked();
 
-        v8::Handle<v8::Value> rf = v8::Handle<v8::Value>::New(
-                this->isolate_,
-                runFunc
-                );
-
         {
             v8::TryCatch trycatch(this->isolate_);
 
-            v8::MaybeLocal<v8::Value> foo_ret = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), 0, NULL);
-            v8::MaybeLocal<v8::Value> foo_ret2 = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), arglen, args);
+            //v8::MaybeLocal<v8::Value> foo_ret = rf.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), 0, NULL);
+            v8::MaybeLocal<v8::Value> foo_ret2 = runFunc.As<v8::Object>()->CallAsFunction(this->context_, this->context_->Global(), arglen, args);
 //                  v8::MaybeLocal<v8::Value> foo_ret = runFunc.As<v8::Object>()->CallAsFunction(context, context->Global(), 0, NULL);
 
-            if (!foo_ret.IsEmpty()) {
-                v8::String::Utf8Value utf8Value(this->isolate_, foo_ret.ToLocalChecked());
-                std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
-            } else {
-                v8::String::Utf8Value utf8Value(this->isolate_, trycatch.Message()->Get());
-                std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
-            }
+//            if (!foo_ret.IsEmpty()) {
+//                v8::String::Utf8Value utf8Value(this->isolate_, foo_ret.ToLocalChecked());
+//                std::cout << "CallAsFunction result: " << *utf8Value << std::endl;
+//            } else {
+//                v8::String::Utf8Value utf8Value(this->isolate_, trycatch.Message()->Get());
+//                std::cout << "CallAsFunction didn't return a value, exception: " << *utf8Value << std::endl;
+//            }
 
             if (!foo_ret2.IsEmpty()) {
                 v8::String::Utf8Value utf8Value(this->isolate_, foo_ret2.ToLocalChecked());

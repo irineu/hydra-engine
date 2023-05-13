@@ -4,7 +4,7 @@ class ModC extends Base{
     }
 
     run(){
-        console.log("kkkk");
+        //console.log("kkkk");
         this.next();
     }
 }
