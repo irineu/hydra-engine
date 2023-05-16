@@ -4,3 +4,5 @@
 /dependencies/hiredis/
 /dependencies/boost/
 /.idea
+/cp/node_modules/
+/cp/.idea

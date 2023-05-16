@@ -23,9 +23,5 @@ class ModA extends Base{
             this.next();
 
         }, 500, "A", "B", 99);
-
-
-
-
     }
 }

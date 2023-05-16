@@ -1,13 +1,15 @@
+//LiteGraph.NODE_MODES = [];
+
 var graph = new LGraph();
 var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
-var node_const = LiteGraph.createNode("basic/sum");
+var node_const = LiteGraph.createNode("flow/HTTPHandler");
 node_const.pos = [200,200];
 graph.add(node_const);
 node_const.id = 1;
 //node_const.setValue(4.5);
 
-var node_watch = LiteGraph.createNode("basic/sum");
+var node_watch = LiteGraph.createNode("transactions/authTransMap");
 node_watch.pos = [700,200];
 graph.add(node_watch);
 node_watch.id = 2;
@@ -38,4 +40,5 @@ window.addEventListener("resize", function() {
     updateEditorHiPPICanvas();
 } );
 
+var socket = io();
 //graph.getNodeById(1).triggerSlot(0);
