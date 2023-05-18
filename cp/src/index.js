@@ -13,14 +13,27 @@ const io = new Server(server);
 
 const port = 3000
 
-let scripts = [];
+let scriptDir = resolve('../scripts');
+let scriptPaths = [];
+let scriptObjects = [];
+
 
 io.on('connection', (socket) => {
     console.log('a user connected');
-})
+
+    socket.on("requestNode", (nodeName) => {
+        socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
+    });
+});
+
+
 
 app.get('/hello', (req, res) => {
     res.send('Hello World!')
+});
+
+app.get('/nodes', (req, res) => {
+    res.json(scriptObjects);
 })
 
 app.use(express.static('public'))
@@ -41,11 +54,6 @@ async function getFiles(dir) {
     return Array.prototype.concat(...files);
 }
 
-let scriptDir = resolve('../scripts');
-let scriptPaths = [];
-let scriptObjects = [];
-
-
 async function parseScripts(){
 
     let so = [];
@@ -55,6 +63,7 @@ async function parseScripts(){
         let script = {
             path: sp,
             valid: false,
+            error: null,
             inputData: [],
             outputData: [],
             inputActions: [],
@@ -75,24 +84,29 @@ async function parseScripts(){
                 console.log(Object.getOwnPropertyNames(ctx.module.prototype));
                 console.log(ctx.module.prototype);
 
-                vm.runInContext("new module()", ctx);
+                vm.runInContext("try{ new module() } catch(e) { error = e }", ctx);
 
-                if(Array.isArray(ctx.inputData)){
-                    script.inputData = ctx.inputData;
+                if(ctx.error){
+                    script.valid = false;
+                    script.error = ctx.error.toString();
+                    console.log(ctx.error.toString());
+                }else{
+                    if(Array.isArray(ctx.inputData)){
+                        script.inputData = ctx.inputData;
+                    }
+
+                    if(Array.isArray(ctx.outputData)){
+                        script.outputData = ctx.outputData;
+                    }
+
+                    if(Array.isArray(ctx.inputActions)){
+                        script.inputActions = ctx.inputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
+                    }
+
+                    if(Array.isArray(ctx.outputActions)){
+                        script.outputActions = ctx.outputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
+                    }
                 }
-
-                if(Array.isArray(ctx.outputData)){
-                    script.outputData = ctx.outputData;
-                }
-
-                if(Array.isArray(ctx.inputActions)){
-                    script.inputActions = ctx.inputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
-                }
-
-                if(Array.isArray(ctx.outputActions)){
-                    script.outputActions = ctx.outputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
-                }
-
             }
         }catch(e){
             //console.log("script error", e);
@@ -126,6 +140,11 @@ const fwatchListener = async (eventType, filePath) => {
 
     scriptPaths = await loadFiles();
     scriptObjects = await parseScripts();
+
+    scriptObjects.forEach(s => {
+        io.emit("updateNode", s);
+    });
+
 };
 
 async function loadFiles(){
