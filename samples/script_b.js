@@ -3,11 +3,11 @@ class ModB extends Base{
         super();
     }
 
-    run(){
-        //console.log("hueheueh");
-        setTimeout(()=>{
-            //console.log("sucesso2");
-            this.next();
-        }, 500);
+    onHandle(ctx) {
+        console.log(JSON.stringify(ctx));
+
+        ctx["b"] = true;
+
+        this.callOutputAction("next", ctx);
     }
 }

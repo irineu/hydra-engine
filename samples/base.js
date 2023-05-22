@@ -4,13 +4,14 @@ outputData = [];
 inputActions = [];
 outputActions = [];
 
+error = null;
 
 class Base{
     constructor() {
 
     }
 
-    setInputData(name, value){
+    getInputData(name){
 
     }
 
@@ -38,5 +39,9 @@ class Base{
 
     addOutputAction(h){
         outputActions.push(h);
+    }
+
+    callOutputAction(action, ctx){
+        ctx.outputActions[action](ctx);
     }
 }

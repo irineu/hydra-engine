@@ -16,5 +16,13 @@
     <script type="text/javascript" src="js/custom.js"></script>
     <script type="text/javascript" src="js/main.js"></script>
 
+
+    <script type="text/javascript">
+        updateEditorHiPPICanvas(0);
+        window.addEventListener("resize", function() {
+            graphcanvas.resize();
+            updateEditorHiPPICanvas(0);
+        } );
+    </script>
 </body>
 </html>

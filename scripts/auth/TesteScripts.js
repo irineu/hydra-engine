@@ -3,14 +3,12 @@ class TesteScripts extends Base{
         super();
 
         super.addInputAction(this.onHandle);
-        super.addOutputAction(this.onNext);
+        super.addOutputAction("onNext");
 
     }
 
     onHandle(ctx){
     }
-
-    onNext(ctx){}
 }
 
 module = TesteScripts;

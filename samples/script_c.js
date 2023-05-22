@@ -3,8 +3,8 @@ class ModC extends Base{
         super();
     }
 
-    run(){
-        //console.log("kkkk");
-        this.next();
+    onHandle(ctx) {
+        console.log(JSON.stringify(ctx));
+        this.callOutputAction("next", ctx);
     }
 }

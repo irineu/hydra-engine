@@ -18,12 +18,15 @@ var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
 //graph.start()
 
-function updateEditorHiPPICanvas() {
+function updateEditorHiPPICanvas(w) {
     const ratio = window.devicePixelRatio;
     if(ratio == 1) { return }
     let canvas = document.getElementById("mycanvas");
     const rect = canvas.parentNode.getBoundingClientRect();
-    const { width, height } = rect;
+    let { width, height } = rect;
+
+    if(w) width = w;
+
     canvas.width = width * ratio;
     canvas.height = height * ratio;
     canvas.style.width = width + "px";
@@ -35,11 +38,6 @@ function updateEditorHiPPICanvas() {
 
 window.graphcanvas = graphCanvas;
 window.graph = graph;
-updateEditorHiPPICanvas();
-window.addEventListener("resize", function() {
-    graphcanvas.resize();
-    updateEditorHiPPICanvas();
-} );
 
 var socket = io();
 

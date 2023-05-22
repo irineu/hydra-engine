@@ -19,11 +19,27 @@ let scriptObjects = [];
 
 
 io.on('connection', (socket) => {
-    console.log('a user connected');
-
     socket.on("requestNode", (nodeName) => {
         socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
     });
+
+    socket.on("compileCode", (objCode) => {
+
+        let script = {
+            path: objCode.path,
+            valid: false,
+            error: null,
+            inputData: [],
+            outputData: [],
+            inputActions: [],
+            outputActions: [],
+            code: objCode.code
+        }
+
+        socket.emit("updateNode", parseScript(script));
+    });
+
+
 });
 
 
@@ -54,9 +70,63 @@ async function getFiles(dir) {
     return Array.prototype.concat(...files);
 }
 
+function parseScript(script){
+
+
+    let ctx = {module: null}
+
+    vm.createContext(ctx)
+
+    try{
+
+        if(!script.code){
+            script.code = fs.readFileSync(scriptDir + "/" + script.path).toString();
+        }
+
+        vm.runInContext(fs.readFileSync( "../samples/base.js"), ctx);
+        vm.runInContext(script.code, ctx);
+
+        if(ctx.module.toString().startsWith("class") && typeof ctx.module == "function"){
+            script.valid = true;
+
+            //console.log(Object.getOwnPropertyNames(ctx.module.prototype));
+            //console.log(ctx.module.prototype);
+
+            vm.runInContext("try{ new module() } catch(e) { error = e }", ctx);
+
+            if(ctx.error){
+                script.valid = false;
+                script.error = ctx.error.toString();
+                console.log(ctx.error.toString());
+            }else{
+                if(Array.isArray(ctx.inputData)){
+                    script.inputData = ctx.inputData;
+                }
+
+                if(Array.isArray(ctx.outputData)){
+                    script.outputData = ctx.outputData;
+                }
+
+                if(Array.isArray(ctx.inputActions)){
+                    script.inputActions = ctx.inputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
+                }
+
+                if(Array.isArray(ctx.outputActions)){
+                    console.log(ctx.outputActions)
+                    script.outputActions = ctx.outputActions.filter(f => typeof f == 'string');
+                }
+            }
+        }
+    }catch(e){
+        //console.log("script error", e);
+    }
+
+    return script;
+}
+
 async function parseScripts(){
 
-    let so = [];
+    let nodes = [];
 
     scriptPaths.forEach(sp =>{
 
@@ -68,54 +138,14 @@ async function parseScripts(){
             outputData: [],
             inputActions: [],
             outputActions: [],
+            code: null
         }
+        let node = parseScript(script);
 
-        let ctx = {module: null}
-
-        vm.createContext(ctx)
-
-        try{
-            vm.runInContext(fs.readFileSync( "../samples/base.js"), ctx);
-            vm.runInContext(fs.readFileSync(scriptDir + "/" + sp), ctx);
-
-            if(ctx.module.toString().startsWith("class") && typeof ctx.module == "function"){
-                script.valid = true;
-
-                console.log(Object.getOwnPropertyNames(ctx.module.prototype));
-                console.log(ctx.module.prototype);
-
-                vm.runInContext("try{ new module() } catch(e) { error = e }", ctx);
-
-                if(ctx.error){
-                    script.valid = false;
-                    script.error = ctx.error.toString();
-                    console.log(ctx.error.toString());
-                }else{
-                    if(Array.isArray(ctx.inputData)){
-                        script.inputData = ctx.inputData;
-                    }
-
-                    if(Array.isArray(ctx.outputData)){
-                        script.outputData = ctx.outputData;
-                    }
-
-                    if(Array.isArray(ctx.inputActions)){
-                        script.inputActions = ctx.inputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
-                    }
-
-                    if(Array.isArray(ctx.outputActions)){
-                        script.outputActions = ctx.outputActions.filter(f => typeof f == 'function' && f.length == 1).map( f => f.name);
-                    }
-                }
-            }
-        }catch(e){
-            //console.log("script error", e);
-        }
-
-        so.push(script);
+        nodes.push(node);
     });
 
-    return so;
+    return nodes;
 };
 
 const fwatchListener = async (eventType, filePath) => {
@@ -168,5 +198,5 @@ async function loadFiles(){
     scriptPaths = await loadFiles();
     scriptObjects = await parseScripts();
 
-    console.log(scriptObjects)
+    //console.log(scriptObjects)
 })();
