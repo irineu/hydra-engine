@@ -5,6 +5,33 @@ ace.require("ace/ext/language_tools");
 var graph = new LGraph();
 var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
+////
+
+var snippetManager = ace.require("ace/snippets").snippetManager;
+
+var snippets = [
+    {
+        name: "addInputAction",
+        content: "super.addInputAction(this.${1:functionName});"
+    },
+    {
+        name: "addOutputAction",
+        content: "super.addOutputAction(\"this.${1:functionName}\");"
+    },
+    {
+        name: "addInputData",
+        content: "super.addInputData(\"${1:name}\", \"${2:type}\");"
+    },
+    {
+        name: "addOutputData",
+        content: "super.addOutputData(\"${1:name}\", \"${2:type}\");"
+    },
+
+];
+snippetManager.register(snippets, "javascript");
+
+////
+
 
 var node_const = LiteGraph.createNode("flow/HTTPHandler");
 node_const.pos = [200,200];
@@ -69,6 +96,30 @@ window.graphcanvas = graphCanvas;
 window.graph = graph;
 
 var socket = io();
+
+socket.on("updateNode", (node) => {
+
+    console.log(node);
+
+    //if(node && node.path == urlParams.get("node")){
+
+        console.log(node.valid, node.error);
+        //graph.clear();
+
+        //LiteGraph.clearRegisteredTypes();
+        let nodeName = registerNode(node, true);
+
+        //let nodeInstance = LiteGraph.createNode(nodeName);
+        //nodeInstance.pos = [100,100];
+        //graph.add(nodeInstance);
+    //}
+
+
+    //if(!baseCode){
+        //baseCode = node.code;
+        //editor.setValue(baseCode);
+    //}
+});
 
 
 function registerNode(s, registerWithError){
@@ -135,6 +186,7 @@ function registerNode(s, registerWithError){
                 content: "View Code",
                 callback: function(item, options, e, menu, node) {
                     new WinBox({
+                        node: node,
                         title: node.title,
                         width: 450,
                         height: 500,
@@ -142,12 +194,32 @@ function registerNode(s, registerWithError){
                         y: "center",
                         background: "#111",
                         html: "<div id=\"editor\"></div>",
-                        oncreate: function(options){
+                        oncreate: (options) => {
+
+
                             var editor = ace.edit("editor");
                             editor.setTheme("ace/theme/monokai");
                             editor.session.setMode("ace/mode/javascript");
-                            console.log(node);
-                            editor.setValue(node.code);
+                            //console.log(node);
+                            editor.setValue(options.node.code);
+                            editor.node = options.node;
+
+                            editor.setOptions({
+                                enableBasicAutocompletion: true,
+                                enableSnippets: true,
+                                enableLiveAutocompletion: false
+                            });
+
+                            editor.session.on('change', (delta) => {
+                                console.log(editor);
+                                //console.log(editor.getValue() != baseCode);
+                                //if(editor.getValue() != baseCode){
+                                    //baseCode = editor.getValue();
+
+                                    socket.emit("compileCode", {code: editor.getValue(), path: editor.node.type});
+                                //}
+                            });
+
                         },
                     })
 
