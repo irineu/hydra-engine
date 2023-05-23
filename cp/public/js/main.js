@@ -1,14 +1,17 @@
 //LiteGraph.NODE_MODES = [];
 
+ace.require("ace/ext/language_tools");
+
 var graph = new LGraph();
 var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
 
-// var node_const = LiteGraph.createNode("flow/HTTPHandler");
-// node_const.pos = [200,200];
-// graph.add(node_const);
-// node_const.id = 1;
-// //node_const.setValue(4.5);
+var node_const = LiteGraph.createNode("flow/HTTPHandler");
+node_const.pos = [200,200];
+graph.add(node_const);
+node_const.id = 1;
+
+//node_const.setValue(4.5);
 
 // var node_watch = LiteGraph.createNode("transactions/authTransMap");
 // node_watch.pos = [700,200];
@@ -35,6 +38,32 @@ function updateEditorHiPPICanvas(w) {
     return canvas;
 }
 
+updateEditorHiPPICanvas(0);
+
+graphCanvas.getExtraMenuOptions = function (){
+    return [
+        {
+            content: "Create new Node", callback: (info, entry, mouse_event) => {
+                var canvas = LGraphCanvas.active_canvas;
+                var ref_window = canvas.getCanvasWindow();
+
+                let newNodePath = prompt("Type the node path and name:", "my_nodes/NewNode.js");
+
+                let normalizedPath = registerNode({
+                    path: newNodePath,
+                    inputData: [],
+                    outputData: [],
+                    inputActions: ["onHandle"],
+                    outputActions: ["onNext"]
+                });
+
+                var node_const = LiteGraph.createNode(normalizedPath);
+                node_const.pos = canvas.convertEventToCanvasOffset(mouse_event);
+                graph.add(node_const);
+            }
+        }
+    ];
+}
 
 window.graphcanvas = graphCanvas;
 window.graph = graph;
@@ -46,6 +75,7 @@ function registerNode(s, registerWithError){
 
     let pathArr = s.path.split("\/");
 
+    //TODO maybe remove
     if(pathArr.length == 1){
         pathArr.unshift("root");
     }
@@ -90,6 +120,47 @@ function registerNode(s, registerWithError){
         "}" +
         "})"
     );
+
+    //avoid eval
+    cScript.prototype.code = s.code;
+
+
+    cScript.prototype.getMenuOptions = (canvas) => {
+        return [
+            {
+                content: "Title",
+                callback: LGraphCanvas.onShowPropertyEditor
+            },
+            {
+                content: "View Code",
+                callback: function(item, options, e, menu, node) {
+                    new WinBox({
+                        title: node.title,
+                        width: 450,
+                        height: 500,
+                        x: "center",
+                        y: "center",
+                        background: "#111",
+                        html: "<div id=\"editor\"></div>",
+                        oncreate: function(options){
+                            var editor = ace.edit("editor");
+                            editor.setTheme("ace/theme/monokai");
+                            editor.session.setMode("ace/mode/javascript");
+                            console.log(node);
+                            editor.setValue(node.code);
+                        },
+                    })
+
+
+                }
+            }
+        ];
+    }
+
+    // {" +
+    //     "           content: \"Code\"," +
+    //     "           callback: () => " +
+    //     "        }
 
     // cScript.prototype.onAction = (action, data) => {
     //     console.log("action:",action);
