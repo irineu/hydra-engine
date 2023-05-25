@@ -5,6 +5,28 @@ ace.require("ace/ext/language_tools");
 var graph = new LGraph();
 var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
+var editorMap = {};
+
+function codeCompile(title){
+
+    if(editorMap[title].editor.node.code != editorMap[title].editor.node.editCode){
+        new RetroNotify({
+            style: 'black',
+            contentText: 'Compiling ' + title + '...',
+            animate: 'slideTopRight',
+            closeDelay: 2000,
+        });
+    }
+}
+
+function codeSave(title){
+
+}
+
+function codeReset(title){
+
+}
+
 ////
 
 var snippetManager = ace.require("ace/snippets").snippetManager;
@@ -99,15 +121,52 @@ var socket = io();
 
 socket.on("updateNode", (node) => {
 
-    console.log(node);
+    //console.log(node);
 
     //if(node && node.path == urlParams.get("node")){
 
         console.log(node.valid, node.error);
+
+        if(!node.valid) return;
         //graph.clear();
 
         //LiteGraph.clearRegisteredTypes();
         let nodeName = registerNode(node, true);
+
+        let newType = LiteGraph.createNode(nodeName);
+        let nodes = graph.findNodesByType(nodeName);
+
+        //console.log(nodes);
+
+        nodes.forEach(n => {
+
+            let newInputs = newType.inputs.map(a => Object.assign({}, a));
+            let newOutputs = newType.outputs.map(b => Object.assign({}, b));
+
+            newInputs.forEach(ni => {
+
+                let commonInput = n.inputs.find(oi => oi.name == ni.name && oi.type == ni.type);
+                if(commonInput){
+                    ni.link = commonInput.link;
+                }
+
+            });
+
+            newOutputs.forEach(no => {
+
+                let commonOutput = n.outputs.find(oo => oo.name == no.name && oo.type == no.type);
+                if(commonOutput){
+                    no.links = commonOutput.links;
+                }
+            });
+
+            n.inputs = newInputs;
+            n.outputs = newOutputs;
+
+
+            n.setSize( n.computeSize() );
+        });
+
 
         //let nodeInstance = LiteGraph.createNode(nodeName);
         //nodeInstance.pos = [100,100];
@@ -193,15 +252,23 @@ function registerNode(s, registerWithError){
                         x: "center",
                         y: "center",
                         background: "#111",
-                        html: "<div id=\"editor\"></div>",
+                        html: "<div class='controls'>" +
+                            "<button id=\"btn-compile-"+node.title+"\" onclick=\"codeCompile('"+node.title+"')\" class='disabled'>Compile</button>" +
+                            "<button id=\"btn-save-"+node.title+"\" onclick=\"codeSave('"+node.title+"')\" class='disabled'>Save</button>" +
+                            "<button id=\"btn-reset-"+node.title+"\" onclick=\"codeReset('"+node.title+"')\" class='disabled'>Reset</button>" +
+                            "<span id=\"status-"+node.title+"\" class='status'>teste</span>" +
+                            "</div>" +
+                            "<div id=\"editor-"+node.title+"\" class=\"editor\" ></div>",
                         oncreate: (options) => {
 
-
-                            var editor = ace.edit("editor");
+                            let editor = ace.edit("editor-"+options.node.title);
                             editor.setTheme("ace/theme/monokai");
                             editor.session.setMode("ace/mode/javascript");
                             //console.log(node);
-                            editor.setValue(options.node.code);
+                            
+                            options.node.editCode = options.node.code;
+                            options.node.editor = editor;
+                            editor.setValue(options.node.editCode);
                             editor.node = options.node;
 
                             editor.setOptions({
@@ -211,14 +278,19 @@ function registerNode(s, registerWithError){
                             });
 
                             editor.session.on('change', (delta) => {
+                                /*
                                 console.log(editor);
                                 //console.log(editor.getValue() != baseCode);
-                                //if(editor.getValue() != baseCode){
-                                    //baseCode = editor.getValue();
 
-                                    socket.emit("compileCode", {code: editor.getValue(), path: editor.node.type});
-                                //}
+                                */
+                                editor.node.editCode = editor.getValue();
+                                if(editor.getValue() != editor.node.code){
+                                    //baseCode = editor.getValue();
+                                    //socket.emit("compileCode", {code: editor.getValue(), path: editor.node.type});
+                                }
                             });
+
+                            editorMap[options.node.title] = options.node;
 
                         },
                     })

@@ -2,11 +2,48 @@
     display: none;
 }
 
-#editor {
+.controls{
+    background: #000;
+    height: 32px;
+    position: relative;
+}
+
+.controls .status{
+    position: absolute;
+    right: 20px;
+    color: #EEE;
+    top: 6px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+}
+
+.controls button{
+    margin: 6px;
+    padding: 2px 5px;
+    background: #FFF;
+    border: 0;
+    color: #000;
+    font-weight: bold;
+}
+
+.controls button:hover{
+    background: #EEE;
+}
+
+.controls button:active {
+    background: #AAA;
+}
+
+.controls button.disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.editor {
     position: relative;
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
-    height: 100%;
+    height: calc(100% - 32px);
 }
