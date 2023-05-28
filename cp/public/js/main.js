@@ -6,16 +6,30 @@ var graph = new LGraph();
 var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 
 var editorMap = {};
+var windowMap = {};
+var rawNodeMap = {};
 
 function codeCompile(title){
 
-    if(editorMap[title].editor.node.code != editorMap[title].editor.node.editCode){
+    if(editorMap[title].node.code != editorMap[title].node.editCode){
+
+        document.getElementById("status-"+title).textContent = "compiling...";
+
         new RetroNotify({
             style: 'black',
             contentText: 'Compiling ' + title + '...',
             animate: 'slideTopRight',
             closeDelay: 2000,
         });
+
+        let rawNode = Object.assign({}, rawNodeMap[title]);
+        rawNode.code = editorMap[title].node.editCode;
+
+        socket.emit("compileCode", rawNode)
+        console.log("xxx",rawNode );
+        // setTimeout((title)=>{
+        //     document.getElementById("status-"+title).textContent = "compiling...";
+        // }, 2000, title);
     }
 }
 
@@ -120,8 +134,6 @@ window.graph = graph;
 var socket = io();
 
 socket.on("updateNode", (node) => {
-
-    //console.log(node);
 
     //if(node && node.path == urlParams.get("node")){
 
@@ -231,9 +243,10 @@ function registerNode(s, registerWithError){
         "})"
     );
 
+    rawNodeMap[className] = s;
+
     //avoid eval
     cScript.prototype.code = s.code;
-
 
     cScript.prototype.getMenuOptions = (canvas) => {
         return [
@@ -244,7 +257,7 @@ function registerNode(s, registerWithError){
             {
                 content: "View Code",
                 callback: function(item, options, e, menu, node) {
-                    new WinBox({
+                    let w = new WinBox({
                         node: node,
                         title: node.title,
                         width: 450,
@@ -253,10 +266,9 @@ function registerNode(s, registerWithError){
                         y: "center",
                         background: "#111",
                         html: "<div class='controls'>" +
-                            "<button id=\"btn-compile-"+node.title+"\" onclick=\"codeCompile('"+node.title+"')\" class='disabled'>Compile</button>" +
-                            "<button id=\"btn-save-"+node.title+"\" onclick=\"codeSave('"+node.title+"')\" class='disabled'>Save</button>" +
+                            "<button id=\"btn-compile-"+node.title+"\" onclick=\"codeCompile('"+node.title+"')\" class='disabled'>Compile and Save</button>" +
                             "<button id=\"btn-reset-"+node.title+"\" onclick=\"codeReset('"+node.title+"')\" class='disabled'>Reset</button>" +
-                            "<span id=\"status-"+node.title+"\" class='status'>teste</span>" +
+                            "<span id=\"status-"+node.title+"\" class='status'></span>" +
                             "</div>" +
                             "<div id=\"editor-"+node.title+"\" class=\"editor\" ></div>",
                         oncreate: (options) => {
@@ -267,7 +279,6 @@ function registerNode(s, registerWithError){
                             //console.log(node);
                             
                             options.node.editCode = options.node.code;
-                            options.node.editor = editor;
                             editor.setValue(options.node.editCode);
                             editor.node = options.node;
 
@@ -278,22 +289,28 @@ function registerNode(s, registerWithError){
                             });
 
                             editor.session.on('change', (delta) => {
+                                console.log(this);
                                 /*
-                                console.log(editor);
+
                                 //console.log(editor.getValue() != baseCode);
 
                                 */
                                 editor.node.editCode = editor.getValue();
                                 if(editor.getValue() != editor.node.code){
-                                    //baseCode = editor.getValue();
-                                    //socket.emit("compileCode", {code: editor.getValue(), path: editor.node.type});
+                                    windowMap[options.node.title].setTitle(editor.node.title + "*");
+                                    document.getElementById("btn-compile-" + editor.node.title).classList.remove("disabled");
+                                }else{
+                                    windowMap[options.node.title].setTitle(editor.node.title);
+                                    document.getElementById("btn-compile-" + editor.node.title).classList.add("disabled");
                                 }
                             });
 
-                            editorMap[options.node.title] = options.node;
+                            editorMap[options.node.title] = editor;
 
                         },
-                    })
+                    });
+
+                    windowMap[node.title] = w;
 
 
                 }

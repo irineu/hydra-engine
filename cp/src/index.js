@@ -3,6 +3,8 @@ const vm = require('node:vm');
 const express = require('express')
 const http = require('http');
 const { Server } = require("socket.io");
+
+const mongoose = require('mongoose');
 const fs = require('fs');
 const { resolve } = require('path');
 const { readdir } = require('fs').promises;
@@ -17,32 +19,60 @@ let scriptDir = resolve('../scripts');
 let scriptPaths = [];
 let scriptObjects = [];
 
+const ScriptSchema = new mongoose.Schema({
+    name: String,
+    path: String,
+    inputData: [],
+    outputData: [],
+    inputActions: [],
+    outputActions: [],
+});
+
+const ScriptModel = mongoose.model('script', ScriptSchema);
+
 
 io.on('connection', (socket) => {
     socket.on("requestNode", (nodeName) => {
         socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
     });
 
-    socket.on("compileCode", (objCode) => {
+    socket.on("compileCode", (node) => {
 
-        let script = {
-            path: objCode.path,
-            valid: false,
-            error: null,
-            inputData: [],
-            outputData: [],
-            inputActions: [],
-            outputActions: [],
-            code: objCode.code
-        }
+        ScriptModel.findById(node._id).then(originalNode => {
 
-        socket.emit("updateNode", parseScript(script));
+            let parsedNode = parseScript(node);
+
+            originalNode.inputData = parsedNode.inputData;
+            originalNode.outputData = parsedNode.outputData;
+            originalNode.inputActions = parsedNode.inputActions;
+            originalNode.outputActions = parsedNode.outputActions;
+
+            originalNode.save().then(()=>{
+
+                fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
+
+                socket.emit("updateNode", parsedNode);
+            }).catch((e) => {
+                console.log(e);
+            });
+
+            // let script = {
+            //     path: objCode.path,
+            //     valid: false,
+            //     error: null,
+            //     inputData: [],
+            //     outputData: [],
+            //     inputActions: [],
+            //     outputActions: [],
+            //     code: objCode.code
+            // }
+        });
+
+
+
+
     });
-
-
 });
-
-
 
 app.get('/hello', (req, res) => {
     res.send('Hello World!')
@@ -60,18 +90,7 @@ server.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 });
 
-
-async function getFiles(dir) {
-    const dirents = await readdir(dir, { withFileTypes: true });
-    const files = await Promise.all(dirents.map((dirent) => {
-        const res = resolve(dir, dirent.name);
-        return dirent.isDirectory() ? getFiles(res) : res;
-    }));
-    return Array.prototype.concat(...files);
-}
-
 function parseScript(script){
-
 
     let ctx = {module: null}
 
@@ -112,7 +131,6 @@ function parseScript(script){
                 }
 
                 if(Array.isArray(ctx.outputActions)){
-                    console.log(ctx.outputActions)
                     script.outputActions = ctx.outputActions.filter(f => typeof f == 'string');
                 }
             }
@@ -124,14 +142,15 @@ function parseScript(script){
     return script;
 }
 
-async function parseScripts(){
+async function parseScripts(scriptEntities){
 
     let nodes = [];
 
-    scriptPaths.forEach(sp =>{
+    scriptEntities.forEach(se =>{
 
         let script = {
-            path: sp,
+            _id: se._id,
+            path: se.path,
             valid: false,
             error: null,
             inputData: [],
@@ -142,61 +161,32 @@ async function parseScripts(){
         }
         let node = parseScript(script);
 
+        if(!(JSON.stringify(script.inputData) == JSON.stringify(se.inputData))) {
+            console.error("inputData inconsistent");
+        }
+
+        if(!(JSON.stringify(script.outputData) == JSON.stringify(se.outputData))) {
+            console.error("outputData inconsistent");
+        }
+
+        if(!(JSON.stringify(script.inputActions) == JSON.stringify(se.inputActions))) {
+            console.error("inputActions inconsistent");
+        }
+
+        if(!(JSON.stringify(script.outputActions) == JSON.stringify(se.outputActions))) {
+            console.error("outputActions inconsistent");
+        }
+
         nodes.push(node);
     });
 
     return nodes;
 };
 
-const fwatchListener = async (eventType, filePath) => {
-
-    if(filePath.endsWith("~")){
-        return;
-    }
-
-    try {
-        if (fs.existsSync(scriptDir + "/" + filePath)) {
-            if(scriptPaths.indexOf(filePath) == -1){
-                console.log("File Added!");
-            }else{
-                console.log("File Changed!");
-            }
-        }else{
-            console.log("file Removed! " + filePath);
-        }
-    } catch(err) {
-        console.error(err)
-    }
-
-    scriptPaths = await loadFiles();
-    scriptObjects = await parseScripts();
-
-    scriptObjects.forEach(s => {
-        io.emit("updateNode", s);
-    });
-
-};
-
-async function loadFiles(){
-    try{
-        let files = await getFiles(scriptDir);
-
-        files = files.map(p => {
-            let np = p.substring(scriptDir.length + 1);
-            return np;
-        });
-
-        return files;
-    }catch(e){
-        console.error(e);
-    }
-}
 
 (async () => {
-    fs.watch(scriptDir + "/",{recursive: true}, fwatchListener);
+    await mongoose.connect('mongodb://127.0.0.1:27017/hydra');
 
-    scriptPaths = await loadFiles();
-    scriptObjects = await parseScripts();
-
-    //console.log(scriptObjects)
+    let scripts = await ScriptModel.find();
+    scriptObjects = await parseScripts(scripts);
 })();
