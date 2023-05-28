@@ -1,19 +1,6 @@
 //node constructor class
 
-class HTTPHandler {
 
-    constructor() {
-        this.title = "HTTP Handler";
-        this.addOutput("onRequest", LiteGraph.ACTION);
-    }
-
-    getMenuOptions(canvas){
-        return [{
-            content: "Title",
-            callback: LGraphCanvas.onShowPropertyEditor
-        }];
-    }
-}
 //
 // class AuthTransactionMap {
 //     constructor() {
@@ -149,10 +136,6 @@ class HTTPHandler {
 //register in the system
 //LiteGraph.registerNodeType("basic/sum", MyAddNode );
 
-LiteGraph.clearRegisteredTypes();
-
-HTTPHandler.skip_list = true;
-LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
 
 //
 // LiteGraph.registerNodeType("flow/AuthChecke", AuthChecker );
@@ -167,9 +150,3 @@ LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
 // LiteGraph.registerNodeType("transactions/nonAuth/SignInHandler", SignInHandler );
 // LiteGraph.registerNodeType("transactions/nonAuth/SignUpHandler", SignUpHandler );
 
-fetch("nodes").then(async response => {
-    let scripts = await response.json();
-    scripts.forEach((s) => {
-        registerNode(s, false);
-    });
-});

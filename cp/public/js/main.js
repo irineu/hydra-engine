@@ -9,21 +9,23 @@ var editorMap = {};
 var windowMap = {};
 var rawNodeMap = {};
 
-function codeCompile(title){
+function codeCompile(type){
 
-    if(editorMap[title].node.code != editorMap[title].node.editCode){
+    if(editorMap[type].node.code != editorMap[type].node.editCode){
 
-        document.getElementById("status-"+title).textContent = "compiling...";
+        document.getElementById("status-"+editorMap[type].node.title).textContent = "compiling...";
 
         new RetroNotify({
             style: 'black',
-            contentText: 'Compiling ' + title + '...',
+            contentText: 'Compiling ' + editorMap[type].node.title + '...',
             animate: 'slideTopRight',
             closeDelay: 2000,
         });
 
-        let rawNode = Object.assign({}, rawNodeMap[title]);
-        rawNode.code = editorMap[title].node.editCode;
+        let rawNode = Object.assign({}, rawNodeMap[type]);
+        rawNode.code = editorMap[type].node.editCode;
+
+        //TODO remove root nodes
 
         socket.emit("compileCode", rawNode)
         console.log("xxx",rawNode );
@@ -40,6 +42,78 @@ function codeSave(title){
 function codeReset(title){
 
 }
+
+function connectionsChange( type, slot, connected, link_info, input_info){
+    console.log(type == LiteGraph.INPUT ? "input" : "output", slot, connected, link_info, input_info);
+
+    if(type == LiteGraph.INPUT){
+        //console.log(graph.getNodeById(link_info.origin_id).type);
+        console.log(graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot]);
+        console.log(graph.getNodeById(link_info.target_id).inputs[link_info.target_slot]);
+
+        fetch("blueprint/update-links", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                mode : connected ? "connect": "disconnect",
+                links: [
+                    {
+                        type: graph.getNodeById(link_info.origin_id).type,
+                        outputAction: graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name
+                    },
+                    {
+                        type: graph.getNodeById(link_info.target_id).type,
+                        inputAction: graph.getNodeById(link_info.target_id).inputs[link_info.target_slot].name
+                    },
+                ]
+            })
+        }).then(async response => {
+            console.log(response);
+        });
+        // console.log(graph.getNodeById(link_info.target_id).type);
+        // console.log(rawNodeMap)
+    }
+
+}
+
+////
+
+class HTTPHandler {
+
+    constructor() {
+        this.title = "HTTP Handler";
+        this.addOutput("onRequest", LiteGraph.ACTION);
+    }
+
+    getMenuOptions(canvas){
+        return [{
+            content: "Title",
+            callback: LGraphCanvas.onShowPropertyEditor
+        }];
+    }
+
+    onConnectionsChange = connectionsChange;
+}
+
+LiteGraph.clearRegisteredTypes();
+
+HTTPHandler.skip_list = true;
+LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
+
+fetch("nodes").then(async response => {
+    let scripts = await response.json();
+    scripts.forEach((s) => {
+        registerNode(s, false);
+    });
+});
+
+let blueprint = null;
+fetch("blueprint?name=main").then(async response => {
+    blueprint = await response.json();
+    console.log(blueprint);
+});
 
 ////
 
@@ -243,10 +317,13 @@ function registerNode(s, registerWithError){
         "})"
     );
 
-    rawNodeMap[className] = s;
+    //rawNodeMap[className] = s;
+    rawNodeMap[s.path] = s;
 
     //avoid eval
     cScript.prototype.code = s.code;
+
+    cScript.prototype.onConnectionsChange = connectionsChange;
 
     cScript.prototype.getMenuOptions = (canvas) => {
         return [
@@ -257,6 +334,9 @@ function registerNode(s, registerWithError){
             {
                 content: "View Code",
                 callback: function(item, options, e, menu, node) {
+
+                    console.log(node);
+
                     let w = new WinBox({
                         node: node,
                         title: node.title,
@@ -266,8 +346,8 @@ function registerNode(s, registerWithError){
                         y: "center",
                         background: "#111",
                         html: "<div class='controls'>" +
-                            "<button id=\"btn-compile-"+node.title+"\" onclick=\"codeCompile('"+node.title+"')\" class='disabled'>Compile and Save</button>" +
-                            "<button id=\"btn-reset-"+node.title+"\" onclick=\"codeReset('"+node.title+"')\" class='disabled'>Reset</button>" +
+                            "<button id=\"btn-compile-"+node.title+"\" onclick=\"codeCompile('"+node.type+"')\" class='disabled'>Compile and Save</button>" +
+                            "<button id=\"btn-reset-"+node.title+"\" onclick=\"codeReset('"+node.type+"')\" class='disabled'>Reset</button>" +
                             "<span id=\"status-"+node.title+"\" class='status'></span>" +
                             "</div>" +
                             "<div id=\"editor-"+node.title+"\" class=\"editor\" ></div>",
@@ -297,20 +377,20 @@ function registerNode(s, registerWithError){
                                 */
                                 editor.node.editCode = editor.getValue();
                                 if(editor.getValue() != editor.node.code){
-                                    windowMap[options.node.title].setTitle(editor.node.title + "*");
+                                    windowMap[options.node.type].setTitle(editor.node.title + "*");
                                     document.getElementById("btn-compile-" + editor.node.title).classList.remove("disabled");
                                 }else{
-                                    windowMap[options.node.title].setTitle(editor.node.title);
+                                    windowMap[options.node.type].setTitle(editor.node.title);
                                     document.getElementById("btn-compile-" + editor.node.title).classList.add("disabled");
                                 }
                             });
 
-                            editorMap[options.node.title] = editor;
+                            editorMap[options.node.type] = editor;
 
                         },
                     });
 
-                    windowMap[node.title] = w;
+                    windowMap[node.type] = w;
 
 
                 }

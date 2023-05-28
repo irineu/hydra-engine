@@ -3,6 +3,7 @@ const vm = require('node:vm');
 const express = require('express')
 const http = require('http');
 const { Server } = require("socket.io");
+const bodyParser = require('body-parser')
 
 const mongoose = require('mongoose');
 const fs = require('fs');
@@ -10,6 +11,10 @@ const { resolve } = require('path');
 const { readdir } = require('fs').promises;
 
 const app = express()
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -28,8 +33,19 @@ const ScriptSchema = new mongoose.Schema({
     outputActions: [],
 });
 
-const ScriptModel = mongoose.model('script', ScriptSchema);
+const BlueprintSchema =  new mongoose.Schema({
+    name: String,
+    nodes: [{
+        node: mongoose.ObjectId,
+        inputDataInUse: [],
+        outputDataInUse: [],
+        inputActionsInUse: [],
+        outputActionsInUse: [],
+    }]
+});
 
+const ScriptModel = mongoose.model('script', ScriptSchema);
+const BlueprintModel = mongoose.model('blueprint', BlueprintSchema);
 
 io.on('connection', (socket) => {
     socket.on("requestNode", (nodeName) => {
@@ -76,6 +92,39 @@ io.on('connection', (socket) => {
 
 app.get('/hello', (req, res) => {
     res.send('Hello World!')
+});
+
+app.get("/blueprint", (req, res) => {
+    console.log(req.query);
+
+    let name = req.query.name;
+
+    if(!name){
+        return res.status(400).json("Name not defined");
+    }
+
+    BlueprintModel.findOne({name : name}).then(blueprint => {
+
+        if(!blueprint){
+            blueprint = new BlueprintModel({name: name});
+            blueprint.save().then(() => {
+                return res.json(blueprint);
+            });
+        }else{
+            return res.json(blueprint);
+        }
+
+
+    });
+})
+
+app.post("/blueprint/update-links", (req, res) => {
+    console.log(req.body);
+    res.json("ok");
+});
+
+app.post("/node/check-usage", (req, res) => {
+
 });
 
 app.get('/nodes', (req, res) => {
