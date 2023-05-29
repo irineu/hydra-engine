@@ -120,7 +120,26 @@ app.get("/blueprint", (req, res) => {
 
 app.post("/blueprint/update-links", (req, res) => {
     console.log(req.body);
-    res.json("ok");
+
+    BlueprintModel.findById(req.body.blueprint).then(blueprint => {
+        if(!blueprint){
+            res.status(404).json("blueprint not found");
+        }
+
+        let outputAction = req.body.links.filter(a => a.outputAction != undefined).map(a => a.outputAction);
+        let inputAction = req.body.links.filter(a => a.inputAction != undefined).map(a => a.inputAction);
+
+        // if(blueprint.nodes.findIndex(n => n.node == ));
+        //
+        // node: mongoose.ObjectId,
+        // inputDataInUse: [],
+        // outputDataInUse: [],
+        // inputActionsInUse: [],
+        // outputActionsInUse: [],
+
+        res.json("OK");
+
+    });
 });
 
 app.post("/node/check-usage", (req, res) => {

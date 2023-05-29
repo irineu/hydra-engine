@@ -8,6 +8,7 @@ var graphCanvas = new LGraphCanvas("#mycanvas", graph);
 var editorMap = {};
 var windowMap = {};
 var rawNodeMap = {};
+let blueprint = null;
 
 function codeCompile(type){
 
@@ -57,14 +58,15 @@ function connectionsChange( type, slot, connected, link_info, input_info){
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
+                blueprint: blueprint._id,
                 mode : connected ? "connect": "disconnect",
                 links: [
                     {
-                        type: graph.getNodeById(link_info.origin_id).type,
-                        outputAction: graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name
+                        type: rawNodeMap[graph.getNodeById(link_info.origin_id).type]._id,
+                        outputAction:  graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name
                     },
                     {
-                        type: graph.getNodeById(link_info.target_id).type,
+                        type: rawNodeMap[graph.getNodeById(link_info.target_id).type]._id,
                         inputAction: graph.getNodeById(link_info.target_id).inputs[link_info.target_slot].name
                     },
                 ]
@@ -101,6 +103,7 @@ LiteGraph.clearRegisteredTypes();
 
 HTTPHandler.skip_list = true;
 LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
+rawNodeMap["flow/HTTPHandler"] = HTTPHandler;
 
 fetch("nodes").then(async response => {
     let scripts = await response.json();
@@ -109,7 +112,6 @@ fetch("nodes").then(async response => {
     });
 });
 
-let blueprint = null;
 fetch("blueprint?name=main").then(async response => {
     blueprint = await response.json();
     console.log(blueprint);
