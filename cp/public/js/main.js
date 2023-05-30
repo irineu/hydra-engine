@@ -82,40 +82,32 @@ function connectionsChange( type, slot, connected, link_info, input_info){
 
 ////
 
-class HTTPHandler {
-
-    constructor() {
-        this.title = "HTTP Handler";
-        this.addOutput("onRequest", LiteGraph.ACTION);
-    }
-
-    getMenuOptions(canvas){
-        return [{
-            content: "Title",
-            callback: LGraphCanvas.onShowPropertyEditor
-        }];
-    }
-
-    onConnectionsChange = connectionsChange;
-}
-
 LiteGraph.clearRegisteredTypes();
 
-HTTPHandler.skip_list = true;
-LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
-rawNodeMap["flow/HTTPHandler"] = HTTPHandler;
+//HTTPHandler.skip_list = true;
+//LiteGraph.registerNodeType("flow/HTTPHandler", HTTPHandler );
+//rawNodeMap["flow/HTTPHandler"] = HTTPHandler;
 
 fetch("nodes").then(async response => {
     let scripts = await response.json();
     scripts.forEach((s) => {
         registerNode(s, false);
     });
+
+    fetch("blueprint?name=main").then(async response => {
+        blueprint = await response.json();
+        console.log(blueprint);
+
+        var node_const = LiteGraph.createNode("flow/HTTPHandler.js");
+        node_const.pos = [200,200];
+        graph.add(node_const);
+        node_const.id = 1;
+    });
+
+
 });
 
-fetch("blueprint?name=main").then(async response => {
-    blueprint = await response.json();
-    console.log(blueprint);
-});
+
 
 ////
 
@@ -143,12 +135,6 @@ var snippets = [
 snippetManager.register(snippets, "javascript");
 
 ////
-
-
-var node_const = LiteGraph.createNode("flow/HTTPHandler");
-node_const.pos = [200,200];
-graph.add(node_const);
-node_const.id = 1;
 
 //node_const.setValue(4.5);
 
@@ -268,7 +254,6 @@ socket.on("updateNode", (node) => {
     //}
 });
 
-
 function registerNode(s, registerWithError){
 
     let pathArr = s.path.split("\/");
@@ -324,6 +309,10 @@ function registerNode(s, registerWithError){
 
     //avoid eval
     cScript.prototype.code = s.code;
+
+    if(s.path.startsWith("flow/")){
+        cScript.skip_list = true;
+    }
 
     cScript.prototype.onConnectionsChange = connectionsChange;
 

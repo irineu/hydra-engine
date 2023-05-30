@@ -119,15 +119,52 @@ app.get("/blueprint", (req, res) => {
 })
 
 app.post("/blueprint/update-links", (req, res) => {
-    console.log(req.body);
 
     BlueprintModel.findById(req.body.blueprint).then(blueprint => {
         if(!blueprint){
             res.status(404).json("blueprint not found");
         }
 
-        let outputAction = req.body.links.filter(a => a.outputAction != undefined).map(a => a.outputAction);
-        let inputAction = req.body.links.filter(a => a.inputAction != undefined).map(a => a.inputAction);
+        // let outputAction = req.body.links.filter(a => a.outputAction != undefined).map(a => a.outputAction);
+        // let inputAction = req.body.links.filter(a => a.inputAction != undefined).map(a => a.inputAction);
+
+        // console.log(req.body);
+        // console.log(blueprint);
+        // console.log(outputAction);
+        // console.log(inputAction);
+
+        req.body.links.forEach(l => {
+            let index = blueprint.nodes.findIndex(n => n.node.toString() == l.type);
+
+            if(blueprint.nodes.length > 0){
+                console.log(blueprint.nodes[0].node.toString() == l.type);
+            }
+
+            if (index == -1){
+
+                console.log("adding node", l.type);
+
+                blueprint.nodes.push({
+                    node : l.type,
+                    inputDataInUse: [],
+                    outputDataInUse: [],
+                    inputActionsInUse:  l.inputAction == undefined ? [] : [l.inputAction],
+                    outputActionsInUse: l.outputAction == undefined ? [] : [l.outputAction]
+                });
+            }else{
+                if(l.inputAction && blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction) == -1){
+                    blueprint.nodes[index].inputActionsInUse.push(l.inputAction);
+                }
+
+                if(l.outputAction && blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction) == -1){
+                    blueprint.nodes[index].outputActionsInUse.push(l.outputAction);
+                }
+            }
+        });
+
+        blueprint.save().then(() =>{
+            res.json("OK");
+        })
 
         // if(blueprint.nodes.findIndex(n => n.node == ));
         //
@@ -137,7 +174,7 @@ app.post("/blueprint/update-links", (req, res) => {
         // inputActionsInUse: [],
         // outputActionsInUse: [],
 
-        res.json("OK");
+
 
     });
 });
