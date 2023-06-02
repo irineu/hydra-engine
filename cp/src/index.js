@@ -47,6 +47,16 @@ const BlueprintSchema =  new mongoose.Schema({
 const ScriptModel = mongoose.model('script', ScriptSchema);
 const BlueprintModel = mongoose.model('blueprint', BlueprintSchema);
 
+function saveNodeAndUpdate(originalNode, parsedNode, socket){
+    originalNode.save().then(()=>{
+        fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
+
+        socket.emit("updateNode", parsedNode);
+    }).catch((e) => {
+        console.log(e);
+    });
+}
+
 io.on('connection', (socket) => {
     socket.on("requestNode", (nodeName) => {
         socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
@@ -67,39 +77,43 @@ io.on('connection', (socket) => {
             let outputActionsAddDiff = parsedNode.outputActions.filter(x => !originalNode.outputActions.includes(x));
             let outputActionsRemoveDiff = originalNode.outputActions.filter(x => !parsedNode.outputActions.includes(x));
 
-            console.log("in add", inputActionsAddDiff)
-            console.log("in rm", inputActionsRemoveDiff)
+            console.log("in add", inputActionsAddDiff);
+            console.log("in rm", inputActionsRemoveDiff);
 
-            console.log("out add", outputActionsAddDiff)
-            console.log("out rm", outputActionsRemoveDiff)
+            console.log("out add", outputActionsAddDiff);
+            console.log("out rm", outputActionsRemoveDiff);
 
+            let query = {
+                //{ $ne: node._id}
+                //nodes : {$elemMatch: { node: new mongoose.Types.ObjectId(node._id) }}
+                nodes: {
+                    $elemMatch: {
+                        node: new mongoose.Types.ObjectId("6472ad6a3837aa6164e2dbac")
+                    }
+                }
+            }
+
+            if(inputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.inputActionsInUse = inputActionsRemoveDiff
+            if(outputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.outputActionsInUse = outputActionsRemoveDiff
+
+            //if validation fails, not will save
             originalNode.inputActions = parsedNode.inputActions;
             originalNode.outputActions = parsedNode.outputActions;
 
-            originalNode.save().then(()=>{
-
-                fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
-
-                socket.emit("updateNode", parsedNode);
-            }).catch((e) => {
-                console.log(e);
-            });
-
-            // let script = {
-            //     path: objCode.path,
-            //     valid: false,
-            //     error: null,
-            //     inputData: [],
-            //     outputData: [],
-            //     inputActions: [],
-            //     outputActions: [],
-            //     code: objCode.code
-            // }
+            if(inputActionsRemoveDiff.length > 0 || outputActionsRemoveDiff.length > 0){
+                BlueprintModel.find(query).then(results => {
+                    if(results.length > 0){
+                        console.log("restriction!");
+                    }else{
+                        saveNodeAndUpdate(originalNode, parsedNode, socket);
+                    }
+                }).catch(e => {
+                    console.log(e)
+                });
+            }else{
+                saveNodeAndUpdate(originalNode, parsedNode, socket);
+            }
         });
-
-
-
-
     });
 });
 
