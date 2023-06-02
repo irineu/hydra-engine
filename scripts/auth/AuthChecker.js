@@ -6,6 +6,8 @@ class AuthChecker extends Base{
         super.addOutputAction("onNext");
         super.addOutputAction("onNext");
         super.addOutputAction("onNext3");
+        
+        //super.addOutputAction("onNext4");
 
         super.addOutputData("isValid", "bool");
         super.addInputData("name", "string");

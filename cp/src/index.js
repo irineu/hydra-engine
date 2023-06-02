@@ -60,6 +60,19 @@ io.on('connection', (socket) => {
 
             originalNode.inputData = parsedNode.inputData;
             originalNode.outputData = parsedNode.outputData;
+
+            let inputActionsAddDiff = parsedNode.inputActions.filter(x => !originalNode.inputActions.includes(x));
+            let inputActionsRemoveDiff = originalNode.inputActions.filter(x => !parsedNode.inputActions.includes(x));
+
+            let outputActionsAddDiff = parsedNode.outputActions.filter(x => !originalNode.outputActions.includes(x));
+            let outputActionsRemoveDiff = originalNode.outputActions.filter(x => !parsedNode.outputActions.includes(x));
+
+            console.log("in add", inputActionsAddDiff)
+            console.log("in rm", inputActionsRemoveDiff)
+
+            console.log("out add", outputActionsAddDiff)
+            console.log("out rm", outputActionsRemoveDiff)
+
             originalNode.inputActions = parsedNode.inputActions;
             originalNode.outputActions = parsedNode.outputActions;
 
@@ -95,7 +108,6 @@ app.get('/hello', (req, res) => {
 });
 
 app.get("/blueprint", (req, res) => {
-    console.log(req.query);
 
     let name = req.query.name;
 
@@ -136,10 +148,6 @@ app.post("/blueprint/update-links", (req, res) => {
         req.body.links.forEach(l => {
             let index = blueprint.nodes.findIndex(n => n.node.toString() == l.type);
 
-            if(blueprint.nodes.length > 0){
-                console.log(blueprint.nodes[0].node.toString() == l.type);
-            }
-
             if (index == -1){
 
                 console.log("adding node", l.type);
@@ -164,7 +172,7 @@ app.post("/blueprint/update-links", (req, res) => {
 
         blueprint.save().then(() =>{
             res.json("OK");
-        })
+        });
 
         // if(blueprint.nodes.findIndex(n => n.node == ));
         //
