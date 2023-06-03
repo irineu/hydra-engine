@@ -33,7 +33,7 @@ const ScriptSchema = new mongoose.Schema({
     outputActions: [],
 });
 
-const BlueprintSchema =  new mongoose.Schema({
+const BlueprintSchema = new mongoose.Schema({
     name: String,
     nodes: [{
         node: mongoose.ObjectId,
@@ -47,13 +47,13 @@ const BlueprintSchema =  new mongoose.Schema({
 const ScriptModel = mongoose.model('script', ScriptSchema);
 const BlueprintModel = mongoose.model('blueprint', BlueprintSchema);
 
-function saveNodeAndUpdate(originalNode, parsedNode, socket){
+function saveNodeAndUpdate(originalNode, parsedNode, res){
     originalNode.save().then(()=>{
         fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
-
-        socket.emit("updateNode", parsedNode);
+        res.json(parsedNode)
     }).catch((e) => {
-        console.log(e);
+        console.error(e);
+        res.status(403).json("Failed to save");
     });
 }
 
@@ -62,58 +62,7 @@ io.on('connection', (socket) => {
         socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
     });
 
-    socket.on("compileCode", (node) => {
-
-        ScriptModel.findById(node._id).then(originalNode => {
-
-            let parsedNode = parseScript(node);
-
-            originalNode.inputData = parsedNode.inputData;
-            originalNode.outputData = parsedNode.outputData;
-
-            let inputActionsAddDiff = parsedNode.inputActions.filter(x => !originalNode.inputActions.includes(x));
-            let inputActionsRemoveDiff = originalNode.inputActions.filter(x => !parsedNode.inputActions.includes(x));
-
-            let outputActionsAddDiff = parsedNode.outputActions.filter(x => !originalNode.outputActions.includes(x));
-            let outputActionsRemoveDiff = originalNode.outputActions.filter(x => !parsedNode.outputActions.includes(x));
-
-            console.log("in add", inputActionsAddDiff);
-            console.log("in rm", inputActionsRemoveDiff);
-
-            console.log("out add", outputActionsAddDiff);
-            console.log("out rm", outputActionsRemoveDiff);
-
-            let query = {
-                //{ $ne: node._id}
-                //nodes : {$elemMatch: { node: new mongoose.Types.ObjectId(node._id) }}
-                nodes: {
-                    $elemMatch: {
-                        node: new mongoose.Types.ObjectId("6472ad6a3837aa6164e2dbac")
-                    }
-                }
-            }
-
-            if(inputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.inputActionsInUse = inputActionsRemoveDiff
-            if(outputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.outputActionsInUse = outputActionsRemoveDiff
-
-            //if validation fails, not will save
-            originalNode.inputActions = parsedNode.inputActions;
-            originalNode.outputActions = parsedNode.outputActions;
-
-            if(inputActionsRemoveDiff.length > 0 || outputActionsRemoveDiff.length > 0){
-                BlueprintModel.find(query).then(results => {
-                    if(results.length > 0){
-                        console.log("restriction!");
-                    }else{
-                        saveNodeAndUpdate(originalNode, parsedNode, socket);
-                    }
-                }).catch(e => {
-                    console.log(e)
-                });
-            }else{
-                saveNodeAndUpdate(originalNode, parsedNode, socket);
-            }
-        });
+    socket.on("compileCode", (blueprint, node) => {
     });
 });
 
@@ -142,6 +91,73 @@ app.get("/blueprint", (req, res) => {
 
 
     });
+});
+
+app.post("/node/compile", (req, res) => {
+
+    let node = req.body.node;
+    let blueprintId = req.body.blueprint;
+
+    ScriptModel.findById(node._id).then(originalNode => {
+
+        let parsedNode = parseScript(node);
+
+        originalNode.inputData = parsedNode.inputData;
+        originalNode.outputData = parsedNode.outputData;
+
+        let inputActionsAddDiff = parsedNode.inputActions.filter(x => !originalNode.inputActions.includes(x));
+        let inputActionsRemoveDiff = originalNode.inputActions.filter(x => !parsedNode.inputActions.includes(x));
+
+        let outputActionsAddDiff = parsedNode.outputActions.filter(x => !originalNode.outputActions.includes(x));
+        let outputActionsRemoveDiff = originalNode.outputActions.filter(x => !parsedNode.outputActions.includes(x));
+
+        console.log("in add", inputActionsAddDiff);
+        console.log("in rm", inputActionsRemoveDiff);
+
+        console.log("out add", outputActionsAddDiff);
+        console.log("out rm", outputActionsRemoveDiff);
+
+        let query = {
+            //_id : { $ne: blueprintId}, //to exclude blueprint self
+            nodes: {
+                $elemMatch: {
+                    node: new mongoose.Types.ObjectId(node._id)
+                }
+            }
+        }
+
+        if(inputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.inputActionsInUse = inputActionsRemoveDiff
+        if(outputActionsRemoveDiff.length > 0) query.nodes.$elemMatch.outputActionsInUse = outputActionsRemoveDiff
+
+        //if validation fails, not will save
+        originalNode.inputActions = parsedNode.inputActions;
+        originalNode.outputActions = parsedNode.outputActions;
+
+        if(inputActionsRemoveDiff.length > 0 || outputActionsRemoveDiff.length > 0){
+            BlueprintModel.find(query).then(results => {
+                if(results.length > 0){
+                    console.log("restriction!");
+                    console.log(results);
+
+                    res.status(400).json({
+                        restrictions: results.map(r => {
+                           return {
+                               "_id": r._id,
+                               "name": r.name
+                           };
+                        })
+                    });
+
+                }else{
+                    saveNodeAndUpdate(originalNode, parsedNode, res);
+                }
+            }).catch(e => {
+                console.log(e)
+            });
+        }else{
+            saveNodeAndUpdate(originalNode, parsedNode, res);
+        }
+    });
 })
 
 app.post("/blueprint/update-links", (req, res) => {
@@ -159,30 +175,61 @@ app.post("/blueprint/update-links", (req, res) => {
         // console.log(outputAction);
         // console.log(inputAction);
 
-        req.body.links.forEach(l => {
-            let index = blueprint.nodes.findIndex(n => n.node.toString() == l.type);
+        if(req.body.mode == "connect"){
+            req.body.links.forEach(l => {
+                let index = blueprint.nodes.findIndex(n => n.node.toString() == l.type);
 
-            if (index == -1){
+                if (index == -1){
 
-                console.log("adding node", l.type);
+                    console.log("adding node", l.type);
 
-                blueprint.nodes.push({
-                    node : l.type,
-                    inputDataInUse: [],
-                    outputDataInUse: [],
-                    inputActionsInUse:  l.inputAction == undefined ? [] : [l.inputAction],
-                    outputActionsInUse: l.outputAction == undefined ? [] : [l.outputAction]
-                });
-            }else{
-                if(l.inputAction && blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction) == -1){
-                    blueprint.nodes[index].inputActionsInUse.push(l.inputAction);
+                    blueprint.nodes.push({
+                        node : l.type,
+                        inputDataInUse: [],
+                        outputDataInUse: [],
+                        inputActionsInUse:  l.inputAction == undefined ? [] : [l.inputAction],
+                        outputActionsInUse: l.outputAction == undefined ? [] : [l.outputAction]
+                    });
+                }else{
+                    if(l.inputAction && blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction) == -1){
+                        blueprint.nodes[index].inputActionsInUse.push(l.inputAction);
+                    }
+
+                    if(l.outputAction && blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction) == -1){
+                        blueprint.nodes[index].outputActionsInUse.push(l.outputAction);
+                    }
                 }
+            });
+        }else{
 
-                if(l.outputAction && blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction) == -1){
-                    blueprint.nodes[index].outputActionsInUse.push(l.outputAction);
+            req.body.links.forEach(l => {
+                let index = blueprint.nodes.findIndex(n => n.node.toString() == l.type);
+                console.log("remove node", index);
+                if (index != -1){
+
+                    if(l.inputAction){
+                        let nindex = blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction);
+                        console.log(nindex);
+                        if(nindex > -1){
+                            blueprint.nodes[index].inputActionsInUse.splice(nindex, 1);
+                        }
+
+                    }
+
+                    if(l.outputAction){
+                        let nindex = blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction);
+                        console.log(nindex);
+                        if(nindex > -1){
+                            blueprint.nodes[index].outputActionsInUse.splice(nindex, 1);
+                        }
+                    }
                 }
-            }
-        });
+            });
+
+            console.log(blueprint.nodes)
+        }
+
+
 
         blueprint.save().then(() =>{
             res.json("OK");

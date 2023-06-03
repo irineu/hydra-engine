@@ -26,10 +26,37 @@ function codeCompile(type){
         let rawNode = Object.assign({}, rawNodeMap[type]);
         rawNode.code = editorMap[type].node.editCode;
 
-        //TODO remove root nodes
+        //TODO remove root nodes from folder
 
-        socket.emit("compileCode", rawNode)
-        console.log("xxx",rawNode );
+        fetch("node/compile", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                    blueprint: blueprint._id,
+                    node: rawNode
+                }
+            )
+        }).then(async response => {
+
+            let result = await response.json();
+
+            if(response.status == 400){
+
+                new RetroNotify({
+                    style: 'red',
+                    contentText: 'Failed to compile ' + editorMap[type].node.title + '!',
+                    animate: 'slideTopRight',
+                    closeDelay: 2000,
+                });
+
+                alert("The following blueprints: " + result.restrictions.map(r => r.name).join(", ") + " are using that link. Please remove them first before save.")
+            }else {
+                onUpdateNode(result);
+            }
+        });
+
         // setTimeout((title)=>{
         //     document.getElementById("status-"+title).textContent = "compiling...";
         // }, 2000, title);
@@ -195,7 +222,7 @@ window.graph = graph;
 
 var socket = io();
 
-socket.on("updateNode", (node) => {
+function onUpdateNode (node) {
 
     //if(node && node.path == urlParams.get("node")){
 
@@ -247,12 +274,18 @@ socket.on("updateNode", (node) => {
         //graph.add(nodeInstance);
     //}
 
+        console.log(node)
 
-    //if(!baseCode){
-        //baseCode = node.code;
-        //editor.setValue(baseCode);
-    //}
-});
+        if(editorMap[node.path].node.code != node.code){
+            editorMap[node.path].node.code = node.code;
+            document.getElementById("btn-compile-" + editorMap[node.path].node.title).classList.add("disabled");
+        }
+
+        // if(!baseCode){
+        //     baseCode = node.code;
+        //     editor.setValue(baseCode);
+        // }
+}
 
 function registerNode(s, registerWithError){
 
