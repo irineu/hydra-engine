@@ -41,7 +41,8 @@ const BlueprintSchema = new mongoose.Schema({
         outputDataInUse: [],
         inputActionsInUse: [],
         outputActionsInUse: [],
-    }]
+    }],
+    graph: String
 });
 
 const ScriptModel = mongoose.model('script', ScriptSchema);
@@ -159,6 +160,23 @@ app.post("/node/compile", (req, res) => {
         }
     });
 })
+
+app.post("/blueprint/save", (req, res) => {
+
+    BlueprintModel.findById(req.body.blueprint).then(blueprint => {
+        if(!blueprint){
+            res.status(404).json("blueprint not found");
+        }
+
+        blueprint.graph = JSON.stringify(req.body.graph);
+
+        blueprint.save().then(() =>{
+            res.json("OK");
+        });
+
+    });
+
+});
 
 app.post("/blueprint/update-links", (req, res) => {
 

@@ -10,6 +10,27 @@ var windowMap = {};
 var rawNodeMap = {};
 let blueprint = null;
 
+function saveGraph(){
+
+    fetch("blueprint/save", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            blueprint: blueprint._id,
+            graph: graph.serialize()
+        })
+    }).then(async response => {
+        new RetroNotify({
+            style: 'black',
+            contentText: 'Blueprint saved!',
+            animate: 'slideTopRight',
+            closeDelay: 2000,
+        });
+    })
+}
+
 function codeCompile(type){
 
     if(editorMap[type].node.code != editorMap[type].node.editCode){
@@ -74,10 +95,24 @@ function codeReset(title){
 function connectionsChange( type, slot, connected, link_info, input_info){
     console.log(type == LiteGraph.INPUT ? "input" : "output", slot, connected, link_info, input_info);
 
+    if(!link_info) return;
+
     if(type == LiteGraph.INPUT){
         //console.log(graph.getNodeById(link_info.origin_id).type);
-        console.log(graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot]);
-        console.log(graph.getNodeById(link_info.target_id).inputs[link_info.target_slot]);
+        // console.log(graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot]);
+        // console.log(graph.getNodeById(link_info.target_id).inputs[link_info.target_slot]);
+
+        let originIndex = blueprint.nodes.findIndex(n => rawNodeMap[graph.getNodeById(link_info.origin_id).type]._id == n.node);
+        let targetIndex = blueprint.nodes.findIndex(n => rawNodeMap[graph.getNodeById(link_info.target_id).type]._id == n.node);
+
+        if(originIndex > -1 && targetIndex > -1){
+            let outputIndex = blueprint.nodes[originIndex].outputActionsInUse.indexOf(graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name);
+            let inputIndex = blueprint.nodes[targetIndex].inputActionsInUse.indexOf(graph.getNodeById(link_info.target_id).inputs[link_info.target_slot].name);
+
+            if(outputIndex > -1 && inputIndex > -1){
+                return;
+            }
+        }
 
         fetch("blueprint/update-links", {
             method: "POST",
@@ -99,7 +134,9 @@ function connectionsChange( type, slot, connected, link_info, input_info){
                 ]
             })
         }).then(async response => {
-            console.log(response);
+            if (response.status == 200){
+                saveGraph();
+            }
         });
         // console.log(graph.getNodeById(link_info.target_id).type);
         // console.log(rawNodeMap)
@@ -123,12 +160,13 @@ fetch("nodes").then(async response => {
 
     fetch("blueprint?name=main").then(async response => {
         blueprint = await response.json();
-        console.log(blueprint);
 
-        var node_const = LiteGraph.createNode("flow/HTTPHandler.js");
-        node_const.pos = [200,200];
-        graph.add(node_const);
-        node_const.id = 1;
+        // var node_const = LiteGraph.createNode("flow/HTTPHandler.js");
+        // node_const.pos = [200,200];
+        // graph.add(node_const);
+        // node_const.id = 1;
+
+        graph.configure(JSON.parse(blueprint.graph));
     });
 
 
@@ -274,17 +312,12 @@ function onUpdateNode (node) {
         //graph.add(nodeInstance);
     //}
 
-        console.log(node)
-
         if(editorMap[node.path].node.code != node.code){
             editorMap[node.path].node.code = node.code;
             document.getElementById("btn-compile-" + editorMap[node.path].node.title).classList.add("disabled");
         }
 
-        // if(!baseCode){
-        //     baseCode = node.code;
-        //     editor.setValue(baseCode);
-        // }
+        saveGraph();
 }
 
 function registerNode(s, registerWithError){
@@ -359,8 +392,6 @@ function registerNode(s, registerWithError){
                 content: "View Code",
                 callback: function(item, options, e, menu, node) {
 
-                    console.log(node);
-
                     let w = new WinBox({
                         node: node,
                         title: node.title,
@@ -380,7 +411,6 @@ function registerNode(s, registerWithError){
                             let editor = ace.edit("editor-"+options.node.title);
                             editor.setTheme("ace/theme/monokai");
                             editor.session.setMode("ace/mode/javascript");
-                            //console.log(node);
                             
                             options.node.editCode = options.node.code;
                             editor.setValue(options.node.editCode);
@@ -393,12 +423,6 @@ function registerNode(s, registerWithError){
                             });
 
                             editor.session.on('change', (delta) => {
-                                console.log(this);
-                                /*
-
-                                //console.log(editor.getValue() != baseCode);
-
-                                */
                                 editor.node.editCode = editor.getValue();
                                 if(editor.getValue() != editor.node.code){
                                     windowMap[options.node.type].setTitle(editor.node.title + "*");
