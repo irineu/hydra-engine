@@ -1,7 +1,7 @@
 class AuthChecker extends Base{
     constructor() {
         super();
-
+ 
         super.addInputAction(this.onHandle);
         super.addInputAction(this.onHandle2);
         super.addOutputAction("onNext");

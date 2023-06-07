@@ -260,9 +260,19 @@ window.graph = graph;
 
 var socket = io();
 
-function onUpdateNode (node) {
+function getNodeRegisterName(node) {
+    let pathArr = node.path.split("\/");
+    let scriptName = pathArr[pathArr.length - 1];
+    let path = pathArr.slice(0, pathArr.length - 1).join("/");
+
+    return path + "/" + scriptName;
+}
+
+function onUpdateNode (response) {
 
     //if(node && node.path == urlParams.get("node")){
+
+        let node = response.node;
 
         console.log(node.valid, node.error);
 
@@ -270,12 +280,28 @@ function onUpdateNode (node) {
         //graph.clear();
 
         //LiteGraph.clearRegisteredTypes();
-        let nodeName = registerNode(node, true);
+        let registerName = getNodeRegisterName(node);
 
-        let newType = LiteGraph.createNode(nodeName);
-        let nodes = graph.findNodesByType(nodeName);
 
-        //console.log(nodes);
+        graph.findNodesByType(registerName).forEach(inPlaceNode => {
+            console.log(inPlaceNode)
+
+            for (let i = 0; i < inPlaceNode.outputs.length; i++) {
+                inPlaceNode.disconnectOutput(i);
+            }
+
+            for (let i = 0; i < inPlaceNode.inputs.length; i++) {
+                inPlaceNode.disconnectInput(i);
+            }
+
+        });
+
+        registerNode(node, true);
+
+        //resize
+
+        let newType = LiteGraph.createNode(registerName);
+        let nodes = graph.findNodesByType(registerName);
 
         nodes.forEach(n => {
 

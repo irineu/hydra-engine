@@ -48,10 +48,13 @@ const BlueprintSchema = new mongoose.Schema({
 const ScriptModel = mongoose.model('script', ScriptSchema);
 const BlueprintModel = mongoose.model('blueprint', BlueprintSchema);
 
-function saveNodeAndUpdate(originalNode, parsedNode, res){
+function saveNodeAndUpdate(originalNode, parsedNode, diff, res){
     originalNode.save().then(()=>{
         fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
-        res.json(parsedNode)
+        res.json({
+            node: parsedNode,
+            diff: diff
+        })
     }).catch((e) => {
         console.error(e);
         res.status(403).json("Failed to save");
@@ -118,6 +121,10 @@ app.post("/node/compile", (req, res) => {
         console.log("out add", outputActionsAddDiff);
         console.log("out rm", outputActionsRemoveDiff);
 
+        let diff = {
+            inputActionsAddDiff, inputActionsRemoveDiff, outputActionsAddDiff,outputActionsRemoveDiff
+        }
+
         let query = {
             //_id : { $ne: blueprintId}, //to exclude blueprint self
             nodes: {
@@ -150,13 +157,13 @@ app.post("/node/compile", (req, res) => {
                     });
 
                 }else{
-                    saveNodeAndUpdate(originalNode, parsedNode, res);
+                    saveNodeAndUpdate(originalNode, parsedNode, diff, res);
                 }
             }).catch(e => {
                 console.log(e)
             });
         }else{
-            saveNodeAndUpdate(originalNode, parsedNode, res);
+            saveNodeAndUpdate(originalNode, parsedNode,diff, res);
         }
     });
 })
@@ -209,11 +216,13 @@ app.post("/blueprint/update-links", (req, res) => {
                         outputActionsInUse: l.outputAction == undefined ? [] : [l.outputAction]
                     });
                 }else{
-                    if(l.inputAction && blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction) == -1){
+                    if(l.inputAction != undefined){
+                    //if(l.inputAction && blueprint.nodes[index].inputActionsInUse.indexOf(l.inputAction) == -1){
                         blueprint.nodes[index].inputActionsInUse.push(l.inputAction);
                     }
 
-                    if(l.outputAction && blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction) == -1){
+                    if(l.outputAction != undefined){
+                    //if(l.outputAction && blueprint.nodes[index].outputActionsInUse.indexOf(l.outputAction) == -1){
                         blueprint.nodes[index].outputActionsInUse.push(l.outputAction);
                     }
                 }
