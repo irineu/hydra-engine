@@ -7,6 +7,7 @@ var editorMap = {};
 var windowMap = {};
 var rawNodeMap = {};
 let blueprint = null;
+let saveTimeout = -1;
 
 
 function codeCompile(type){
@@ -59,49 +60,8 @@ function codeCompile(type){
 }
 
 function connectionsChange( type, slot, connected, link_info, input_info){
-
-    if(!link_info) return;
-
-    if(type == LiteGraph.INPUT){
-
-        let originIndex = blueprint.nodes.findIndex(n => rawNodeMap[graph.getNodeById(link_info.origin_id).type]._id == n.node);
-        let targetIndex = blueprint.nodes.findIndex(n => rawNodeMap[graph.getNodeById(link_info.target_id).type]._id == n.node);
-
-        if(originIndex > -1 && targetIndex > -1){
-            let outputIndex = blueprint.nodes[originIndex].outputActionsInUse.indexOf(graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name);
-            let inputIndex = blueprint.nodes[targetIndex].inputActionsInUse.indexOf(graph.getNodeById(link_info.target_id).inputs[link_info.target_slot].name);
-
-            if(outputIndex > -1 && inputIndex > -1){
-                return;
-            }
-        }
-
-        fetch("blueprint/update-links", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                blueprint: blueprint._id,
-                mode : connected ? "connect": "disconnect",
-                links: [
-                    {
-                        type: rawNodeMap[graph.getNodeById(link_info.origin_id).type]._id,
-                        outputAction:  graph.getNodeById(link_info.origin_id).outputs[link_info.origin_slot].name
-                    },
-                    {
-                        type: rawNodeMap[graph.getNodeById(link_info.target_id).type]._id,
-                        inputAction: graph.getNodeById(link_info.target_id).inputs[link_info.target_slot].name
-                    },
-                ]
-            })
-        }).then(async response => {
-            if (response.status == 200){
-                saveGraph();
-            }
-        });
-    }
-
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveGraph, 2000);
 }
 
 function saveGraph(){
@@ -113,7 +73,7 @@ function saveGraph(){
         },
         body: JSON.stringify({
             blueprint: blueprint._id,
-            graph: graph.serialize()
+            graph: JSON.stringify(graph.serialize())
         })
     }).then(async response => {
         new RetroNotify({

@@ -39,7 +39,7 @@ const ScriptSchema = new mongoose.Schema({
 const BlueprintSchema = new mongoose.Schema({
     name: String,
     nodes: [{
-        node: mongoose.ObjectId,
+        node: String,
         inputDataInUse: [],
         outputDataInUse: [],
         inputActionsInUse: [],
@@ -113,8 +113,17 @@ const ScriptModel = mongoose.model('script', ScriptSchema);
 const BlueprintModel = mongoose.model('blueprint', BlueprintSchema);
 
 function saveNodeAndUpdate(originalNode, parsedNode, currentBlueprint, res){
+
     originalNode.save().then(()=>{
         fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
+
+        let cachedScriptIndex = scriptObjects.findIndex((n => n._id.toString() == originalNode._id.toString()));
+        if(cachedScriptIndex > -1){
+            scriptObjects[cachedScriptIndex] = parsedNode;
+        }else{
+            console.error("bad reference on cache")
+        }
+
         res.json({
             node: parsedNode,
             graph: currentBlueprint != null ? currentBlueprint.graph : null
@@ -124,12 +133,6 @@ function saveNodeAndUpdate(originalNode, parsedNode, currentBlueprint, res){
         res.status(403).json("Failed to save");
     });
 }
-
-io.on('connection', (socket) => {
-    socket.on("requestNode", (nodeName) => {
-        socket.emit("updateNode", scriptObjects.find(s => s.path == nodeName));
-    });
-});
 
 app.get('/hello', (req, res) => {
     res.send('Hello World!')
@@ -187,7 +190,7 @@ app.post("/node/compile", async (req, res) => {
         let query = {
             nodes: {
                 $elemMatch: {
-                    node: new mongoose.Types.ObjectId(node._id)
+                    node: node.path
                 }
             }
         }
@@ -198,6 +201,8 @@ app.post("/node/compile", async (req, res) => {
 
         originalNode.inputData = parsedNode.inputData;
         originalNode.outputData = parsedNode.outputData;
+
+        //registerNode(originalNode);
 
         if(inputActionsRemoveDiff.length > 0 || outputActionsRemoveDiff.length > 0){
 
@@ -225,7 +230,8 @@ app.post("/node/compile", async (req, res) => {
                         //TODO add new version or flag as changed
 
                         bp.graph = JSON.stringify(graph.serialize());
-                        await bp.save();
+
+                        await saveBlueprint(bp);
 
                         if(blueprintId == bp._id.toString()){
                             currentBlueprint = bp;
@@ -244,20 +250,55 @@ app.post("/node/compile", async (req, res) => {
     });
 })
 
-app.post("/blueprint/save", (req, res) => {
+async function saveBlueprint(blueprint){
 
-    BlueprintModel.findById(req.body.blueprint).then(blueprint => {
-        if(!blueprint){
-            res.status(404).json("blueprint not found");
+    let graph = new LiteGraph.LGraph();
+    graph.configure(JSON.parse(blueprint.graph));
+
+    blueprint.nodes = [];
+
+    graph._nodes.forEach(node =>{
+
+        let inNodes = node.inputs.filter(i => i.link != null).map(i => i.name);
+        let outNodes = node.outputs.filter(o => o.links != null && o.links.length > 0).map(o => o.name);
+
+        let bpNode = {
+            node : node.type,
+            inputDataInUse: [],
+            outputDataInUse: [],
+            inputActionsInUse:  [],
+            outputActionsInUse: []
         }
 
-        blueprint.graph = JSON.stringify(req.body.graph);
-
-        blueprint.save().then(() =>{
-            res.json("OK");
+        inNodes.forEach(n => {
+            if(bpNode.inputActionsInUse.indexOf(n) == -1){
+                bpNode.inputActionsInUse.push(n);
+            }
         });
 
+        outNodes.forEach(n => {
+            if(bpNode.outputActionsInUse.indexOf(n) == -1){
+                bpNode.outputActionsInUse.push(n);
+            }
+        });
+
+        blueprint.nodes.push(bpNode);
     });
+
+    await blueprint.save();
+    return blueprint;
+}
+
+app.post("/blueprint/save", async (req, res) => {
+
+    let blueprint = await BlueprintModel.findById(req.body.blueprint);
+    if(blueprint){
+        blueprint.graph = req.body.graph;
+        await saveBlueprint(blueprint);
+        res.json("OK");
+    }else{
+        res.status(404).json("NOK");
+    }
 
 });
 
@@ -324,16 +365,6 @@ app.post("/blueprint/update-links", (req, res) => {
         blueprint.save().then(() =>{
             res.json("OK");
         });
-
-        // if(blueprint.nodes.findIndex(n => n.node == ));
-        //
-        // node: mongoose.ObjectId,
-        // inputDataInUse: [],
-        // outputDataInUse: [],
-        // inputActionsInUse: [],
-        // outputActionsInUse: [],
-
-
 
     });
 });
