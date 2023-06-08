@@ -432,6 +432,7 @@ function parseScript(script){
         }
     }catch(e){
         //console.log("script error", e);
+        script.valid = false;
     }
 
     return script;

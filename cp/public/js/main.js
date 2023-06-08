@@ -51,7 +51,6 @@ function codeCompile(type){
 
                 alert("The following blueprints: " + result.restrictions.map(r => r.name).join(", ") + " are using that link. Please remove them first before save.")
             }else {
-
                 let result = await response.json();
                 onUpdateNode(result);
             }
@@ -76,12 +75,12 @@ function saveGraph(){
             graph: JSON.stringify(graph.serialize())
         })
     }).then(async response => {
-        new RetroNotify({
-            style: 'black',
-            contentText: 'Blueprint saved!',
-            animate: 'slideTopRight',
-            closeDelay: 2000,
-        });
+        // new RetroNotify({
+        //     style: 'black',
+        //     contentText: 'Blueprint saved!',
+        //     animate: 'slideTopRight',
+        //     closeDelay: 2000,
+        // });
     })
 }
 
@@ -124,7 +123,15 @@ function onUpdateNode (response) {
 
     console.log(node.valid, node.error);
 
-    if(!node.valid) return;
+    let gnode = graph._nodes.find(n => n.type == node.path);
+
+    if(!node.valid){
+        document.getElementById("status-"+gnode.title).textContent = "Failed to compile!";
+        return;
+    }else{
+        document.getElementById("status-"+gnode.title).textContent = "";
+        windowMap[node.path].setTitle(gnode.title);
+    }
 
     let registerName = registerNode(node, true);
 
