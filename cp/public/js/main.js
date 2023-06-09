@@ -203,6 +203,38 @@ function registerNode(s, registerWithError){
     //avoid eval
     cScript.prototype.code = s.code;
 
+    cScript.prototype.onExecute = () => {
+        console.log("exec");
+        // var A = this.getInputData(0);
+        // if( A === undefined )
+        //     A = 0;
+        // var B = this.getInputData(1);
+        // if( B === undefined )
+        //     B = 0;
+        // this.setOutputData( 0, A + B );
+    }
+
+
+    //to pl ay graph._nodes[0].triggerSlot(0)
+    //graph._nodes[graph._nodes.findIndex(n => n.type.startsWith("flow"))].triggerSlot(0)
+    cScript.prototype.onAction = function (action, data){
+        console.log("action:",action);
+
+        setTimeout(()=>{
+            for (let i = 0; i < this.outputs.length; i++) {
+                if(this.outputs[i].links != null && this.outputs[i].type == LiteGraph.ACTION){
+                    console.log(this.outputs[i]);
+                    this.triggerSlot(i);
+                }
+            }
+
+        },1000);
+    }
+
+    cScript.prototype.onTrigger = (action, data) => {
+        console.log("trig:", action);
+    }
+
     if(s.path.startsWith("flow/")){
         cScript.skip_list = true;
     }

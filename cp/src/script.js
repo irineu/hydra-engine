@@ -29,7 +29,8 @@ const BlueprintSchema = new mongoose.Schema({
         inputActionsInUse: [],
         outputActionsInUse: [],
     }],
-    graph: String
+    graph: String,
+    chain: Object
 });
 
 const ScriptModel = mongoose.model('script', ScriptSchema);
@@ -240,6 +241,8 @@ async function saveBlueprint(blueprint){
         blueprint.nodes.push(bpNode);
     });
 
+    blueprint.chain = generateChain(graph);
+
     await blueprint.save();
     return blueprint;
 }
@@ -435,6 +438,44 @@ function onGetBlueprint(req,res){
 
 
     });
+}
+
+function recursiveGraph(node, graph){
+
+    let chainNode = {};
+
+    for (let i = 0; i < node.outputs.length; i++) {
+        if(node.outputs[i].links != null && node.outputs[i].type == LiteGraph.ACTION){
+            let linkId = node.outputs[i].links[0];
+            let key = node.outputs[i].name;
+
+            //console.log(">", key, graph.getNodeById(graph.links[linkId].target_id).inputs[graph.links[linkId].target_slot].name);
+
+            let next = graph.getNodeById(graph.links[linkId].target_id);
+
+            chainNode[key] = {
+                type: next.type,
+                input: graph.getNodeById(graph.links[linkId].target_id).inputs[graph.links[linkId].target_slot].name,
+                output: recursiveGraph(next, graph)
+            }
+        }
+    }
+
+    return chainNode;
+
+}
+
+function generateChain(graph){
+    let originNode = graph._nodes[graph._nodes.findIndex(n => n.type.startsWith("flow"))]
+    //originNode.triggerSlot(0)
+
+    let result = recursiveGraph(originNode, graph);
+    result.type = originNode.type;
+
+    //console.log(result);
+    //graph.links
+
+    return result;
 }
 
 async function setup(){
