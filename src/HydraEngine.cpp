@@ -15,10 +15,12 @@ namespace hydra {
 
     std::map<std::string, std::function<void()>> hydra::HydraEngine::cbMap;
 
-    hydra::HydraEngine::HydraEngine(boost::asio::io_context * ctx){
+    hydra::HydraEngine::HydraEngine(boost::asio::io_context * ctx, MongoDAO * mongoDAO){
         hydra::bindings::Async::IOC = ctx;
+        this->mongoDAO_ = mongoDAO;
         this->setupLog();
         this->initializeV8();
+        this->mongoDAO_->loadScripts();
     }
 
     void hydra::HydraEngine::initializeV8()
@@ -49,43 +51,31 @@ namespace hydra {
     }
 
     void hydra::HydraEngine::setupLog() {
-        std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
-        static_cast<quill::ConsoleHandler*>(stdout_handler.get())->enable_console_colours();
-
-        stdout_handler->set_pattern("%(ascii_time) %(fileline)  %(logger_name) - %(message)", // format
-                                    "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
-                                    quill::Timezone::GmtTime); // timestamp's timezone
-
-        quill::Config cfg;
-        cfg.default_handlers.emplace_back(stdout_handler);
-        cfg.enable_console_colours = true;
-        quill::configure(cfg);
-        quill::start();
 
         //
         //    quill::Logger* v8Logger = quill::create_logger("V8");
-        //
+        //    this->logger_ = quill::get_logger();
         //
 
-        this->logger_ = quill::get_logger();
+        this->logger_ = quill::create_logger("V8");
         this->logger_->set_log_level(quill::LogLevel::TraceL3);
-
         this->logger_->init_backtrace(2, quill::LogLevel::Critical);
+
+        //LOG_BACKTRACE(this->logger_, "Backtrace log {}", 1);
+        //LOG_BACKTRACE(this->logger_, "Backtrace log {}", 2);
+        //
+        //LOG_DEBUG_NOFN(this->logger_, "123");
+        //LOG_DEBUG(this->logger_, "Debugging foo {}", 1234);
+        //LOG_INFO(v8Logger, "Welcome to Quill!");
+        //LOG_ERROR(this->logger_, "An error message. error code {}", 123);
+        //LOG_WARNING(this->logger_, "A warning message.");
+        //LOG_CRITICAL(this->logger_, "A critical error.");
+        //
+        //LOG_TRACE_L1(this->logger_, "{:>30}", "right aligned");
+        //LOG_TRACE_L2(this->logger_, "Positional arguments are {1} {0} ", "too", "supported");
+        //LOG_TRACE_L3(this->logger_, "Support for floats {:03.2f}", 1.23456);
     }
 
-//LOG_BACKTRACE(this->logger_, "Backtrace log {}", 1);
-//LOG_BACKTRACE(this->logger_, "Backtrace log {}", 2);
-//
-//LOG_DEBUG_NOFN(this->logger_, "123");
-//LOG_DEBUG(this->logger_, "Debugging foo {}", 1234);
-//LOG_INFO(v8Logger, "Welcome to Quill!");
-//LOG_ERROR(this->logger_, "An error message. error code {}", 123);
-//LOG_WARNING(this->logger_, "A warning message.");
-//LOG_CRITICAL(this->logger_, "A critical error.");
-//
-//LOG_TRACE_L1(this->logger_, "{:>30}", "right aligned");
-//LOG_TRACE_L2(this->logger_, "Positional arguments are {1} {0} ", "too", "supported");
-//LOG_TRACE_L3(this->logger_, "Support for floats {:03.2f}", 1.23456);
 
     std::string hydra::HydraEngine::loadCode() {
 
@@ -93,14 +83,20 @@ namespace hydra {
 
         code.append(loadFile("../samples/base.js"));
         code.append("\r\n");
-        code.append(loadFile("../samples/script_a.js"));
-        code.append("\r\n");
-        code.append(loadFile("../samples/script_b.js"));
-        code.append("\r\n");
-        code.append(loadFile("../samples/script_c.js"));
-        code.append("\r\n");
+
+        for(hydra::entity::ScriptEntity scriptEntity : mongoDAO_->scripts){
+            code.append(loadFile("../scripts/" + scriptEntity.path));
+
+            code.append("\r\n");
+            code.append("scripts['"+scriptEntity.path+"'] = new module();");
+            code.append("\r\n");
+        }
+
         code.append(loadFile("../samples/rule.js"));
         code.append("\r\n");
+
+        // code.append("console.log(scripts)");
+        // std::cout << code << std::endl;
 
         return code;
     }

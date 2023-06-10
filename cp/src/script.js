@@ -334,7 +334,7 @@ function parseScript(script){
             script.code = fs.readFileSync(scriptDir + "/" + script.path).toString();
         }
 
-        vm.runInContext(fs.readFileSync( "../samples/base.js"), ctx);
+        vm.runInContext(fs.readFileSync( "../samples/base_oc.js"), ctx);
         vm.runInContext(script.code, ctx);
 
         if(ctx.module.toString().startsWith("class") && typeof ctx.module == "function"){
@@ -445,15 +445,14 @@ function recursiveGraph(node, graph){
     let chainNode = {};
 
     for (let i = 0; i < node.outputs.length; i++) {
-        if(node.outputs[i].links != null && node.outputs[i].type == LiteGraph.ACTION){
+        if(node.outputs[i].links != null && node.outputs[i].links.length > 0 && node.outputs[i].type == LiteGraph.ACTION){
             let linkId = node.outputs[i].links[0];
             let key = node.outputs[i].name;
-
-            //console.log(">", key, graph.getNodeById(graph.links[linkId].target_id).inputs[graph.links[linkId].target_slot].name);
 
             let next = graph.getNodeById(graph.links[linkId].target_id);
 
             chainNode[key] = {
+                graphId: next.id,
                 type: next.type,
                 input: graph.getNodeById(graph.links[linkId].target_id).inputs[graph.links[linkId].target_slot].name,
                 output: recursiveGraph(next, graph)
@@ -469,9 +468,9 @@ function generateChain(graph){
     let originNode = graph._nodes[graph._nodes.findIndex(n => n.type.startsWith("flow"))]
     //originNode.triggerSlot(0)
 
-    let result = recursiveGraph(originNode, graph);
+    let result = {}
     result.type = originNode.type;
-
+    result.output = recursiveGraph(originNode, graph);
     //console.log(result);
     //graph.links
 

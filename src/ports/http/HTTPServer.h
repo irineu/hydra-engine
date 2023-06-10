@@ -20,6 +20,7 @@
 #include <thread>
 #include "session.h"
 #include "../../HydraEngine.h"
+#include "quill/Quill.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -37,7 +38,7 @@ public:
     void startServer(boost::asio::io_context * ctx);
     static hydra::HydraEngine * engine_;
 private:
-
+    quill::Logger * logger_;
 };
 
 

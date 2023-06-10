@@ -20,17 +20,39 @@
 //#include "v8-function-callback.h"
 
 #include "HydraEngine.h"
+#include "dao/MongoDAO.h"
 #include "ports/http/HTTPServer.h"
 #include <chrono>
 #include <thread>
 
 using namespace std::chrono_literals;
 
+
+void setupMainLog() {
+    std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
+    static_cast<quill::ConsoleHandler*>(stdout_handler.get())->enable_console_colours();
+
+    stdout_handler->set_pattern("%(ascii_time) %(fileline)  %(logger_name) - %(message)", // format
+                                "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
+                                quill::Timezone::GmtTime); // timestamp's timezone
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(stdout_handler);
+    cfg.enable_console_colours = true;
+    quill::configure(cfg);
+    quill::start();
+}
+
 int main(){
+
+    setupMainLog();
+
+    hydra::MongoDAO * mongoDAO = new hydra::MongoDAO();
+    mongoDAO->setup();
 
     boost::asio::io_context * ctx = new boost::asio::io_context();
 
-    hydra::HydraEngine * engine = new hydra::HydraEngine(ctx);
+    hydra::HydraEngine * engine = new hydra::HydraEngine(ctx, mongoDAO);
     engine->start();
 
 //    engine->exec([engine]{
@@ -63,6 +85,8 @@ int main(){
 
 
     t.join();
+
+    delete mongoDAO;
 
     std::cout << "Hello World!" << std::endl;
 }

@@ -7,14 +7,28 @@
 
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
+#include "quill/Quill.h"
+#include "../entities/ScriptEntity.h"
 
-class MongoDAO {
-private:
-    const static mongocxx::instance instance;
-    mongocxx::client client;
-public:
-    void connect();
-};
+namespace hydra {
+
+    class MongoDAO {
+    private:
+        const static mongocxx::instance instance;
+        mongocxx::client client;
+        quill::Logger *logger_;
+
+        void connect();
+
+    public:
+        static std::vector<hydra::entity::ScriptEntity> scripts;
+
+        void setup();
+
+        void loadScripts();
+
+    };
+}
 
 
 #endif //HYDRA_ENGINE_MONGODAO_H

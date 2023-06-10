@@ -16,6 +16,8 @@
 #include "bindings/HTTPClient.h"
 #include "bindings/Async.h"
 
+#include "dao/MongoDAO.h"
+
 //#include "dao/MongoDAO.h"
 
 #include "v8.h"
@@ -25,8 +27,7 @@ namespace hydra {
 
     class HydraEngine {
     public:
-        HydraEngine(boost::asio::io_context * ctx);
-        HydraEngine(boost::asio::io_context * ctx, quill::Logger* logger);
+        HydraEngine(boost::asio::io_context * ctx, MongoDAO * mongoDAO);
         void start();
         void exec(std::function<void()> fn);
         void shutdown();
@@ -37,6 +38,7 @@ namespace hydra {
         std::string loadFile(std::string filename);
         std::string loadCode();
 
+        MongoDAO * mongoDAO_;
         quill::Logger * logger_;
         std::unique_ptr<v8::Platform> platform_;
         v8::Isolate * isolate_;

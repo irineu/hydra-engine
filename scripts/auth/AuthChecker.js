@@ -6,7 +6,7 @@ class AuthChecker extends Base{
         super.addInputAction(this.onHandle2);
         super.addOutputAction("onNext");
         super.addOutputAction("onNext3");
-         
+        
         //super.addOutputAction("onNext4");
 
         super.addOutputData("isValid", "bool");
@@ -19,7 +19,7 @@ class AuthChecker extends Base{
 
     onHandle(ctx){
         super.callOutputAction("onNext", ctx);
-        super.callOutputAction("onNext", ctx);
+        //super.callOutputAction("onNext", ctx);
     }
     
      onHandle2(ctx){

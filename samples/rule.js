@@ -1,10 +1,47 @@
-let scripts = {
-    a : new ModA(),
-    b : new ModB(),
-    c : new ModC()
-}
 
 this.rule = {
+    "type": "flow/HTTPHandler.js",
+    "output": {
+        "onRequest": {
+            "graphId": 2,
+            "type": "auth/AuthChecker.js",
+            "input": "onHandle",
+            "output": {
+                "onNext": {
+                    "graphId": 5,
+                    "type": "auth/AuthChecker.js",
+                    "input": "onHandle2",
+                    "output": {
+                        "onNext": {
+                            "graphId": 3,
+                            "type": "auth/TesteScripts.js",
+                            "input": "onHandle",
+                            "output": {
+                            }
+                        }
+                    }
+                },
+                "onNext3": {
+                    "graphId": 6,
+                    "type": "auth/TesteScripts.js",
+                    "input": "onHandle",
+                    "output": {
+                        "onNext": {
+                            "graphId": 7,
+                            "type": "auth/TesteScripts.js",
+                            "input": "onHandle",
+                            "output": {
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+this.rule2 = {
     script: "a",
     events: {
         next: {
@@ -47,7 +84,7 @@ let ctxMap = {};
 
 this.run = (rule, ctx) => {
 
-    console.log("Running: " + ctx + ":" + rule.script);
+    console.log("Running: " + ctx + ":" + rule.type);
 
     if(!ctxMap[ctx]){
         ctxMap[ctx] = {
@@ -55,40 +92,60 @@ this.run = (rule, ctx) => {
         }
     }
 
-
-    if(rule.script && Object.keys(rule.events).length > 0){
-        let script = scripts[rule.script];
+    if(rule.type && Object.keys(rule.output).length > 0){
+        let script = scripts[rule.type];
 
         ctxMap[ctx].outputActions = [];
 
-        Object.keys(rule.events).forEach(e => {
+        let firstKey = Object.keys(rule.output)[0];
+        console.log(firstKey)
+        if(rule.output[firstKey].type){
+            ctxMap[ctx].outputActions[firstKey] = () => {
 
-            if(rule.events[e].script){
-                ctxMap[ctx].outputActions[e] = () => {
-                    ctxMap[ctx].outputActions = [];
-                    run(rule.events[e], ctx);
-                }
+                //ctxMap[ctx].outputActions = [];
+
+                run(rule.output[firstKey], ctx);
             }
+        }
 
-            // if(rule.events[e].script){
-            //     script[e] = () => {
-            //         run(rule.events[e], ctx);
-            //     }
-            // }else if(e == 'error'){
-            //     script[e] = () => {
-            //         //console.log("on error!!");
-            //     }
-            //
-            // }else{
-            //     //console.log("event not set");
-            // }
-
-        });
+        // Object.keys(rule.output).forEach(e => {
+        //
+        //     if(rule.output[e].type){
+        //         ctxMap[ctx].outputActions[e] = () => {
+        //
+        //             //ctxMap[ctx].outputActions = [];
+        //
+        //             run(rule.output[e], ctx);
+        //         }
+        //     }
+        //
+        //     // if(rule.events[e].script){
+        //     //     script[e] = () => {
+        //     //         run(rule.events[e], ctx);
+        //     //     }
+        //     // }else if(e == 'error'){
+        //     //     script[e] = () => {
+        //     //         //console.log("on error!!");
+        //     //     }
+        //     //
+        //     // }else{
+        //     //     //console.log("event not set");
+        //     // }
+        //
+        // });
 
         //todo mudar para key
-        script.onHandle(ctxMap[ctx]);
+
+        if(rule.input){
+            script[rule.input](ctxMap[ctx]);
+        }else{
+            //script.onHandle(ctxMap[ctx]);
+            //script.onRequest(ctxMap[ctx]);
+            run(rule.output["onRequest"], ctx);
+        }
+
     }else{
-        //console.log("done end finish");
+        console.log("done end finish");
         end(ctx);
     }
 

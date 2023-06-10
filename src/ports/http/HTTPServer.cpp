@@ -177,6 +177,13 @@ http::message_generator HTTPServer::handle_request(
 
 
 void HTTPServer::startServer(boost::asio::io_context * ctx) {
+
+    this->logger_ = quill::create_logger("HTTP-Server");
+    this->logger_->set_log_level(quill::LogLevel::TraceL3);
+    this->logger_->init_backtrace(2, quill::LogLevel::Critical);
+
+    LOG_DEBUG(this->logger_, "Starting...");
+
     int maxThread = 2;
 
     auto const address = net::ip::make_address("0.0.0.0");
@@ -202,8 +209,10 @@ void HTTPServer::startServer(boost::asio::io_context * ctx) {
            ctx->run();
         });
     }
-    ctx->run();
 
+    LOG_INFO(this->logger_, "Started!");
+
+    ctx->run();
 
     for(auto& t : v)
         t.join();
