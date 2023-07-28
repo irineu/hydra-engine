@@ -29,7 +29,11 @@ app.get("/blueprint", (req, res) => {
 
 app.post("/node/compile", async (req, res) => {
     scripts.onCompile(req,res);
-})
+});
+
+app.post("/node/create", async (req, res) => {
+    scripts.onCreate(req,res);
+});
 
 app.post("/blueprint/save", async (req, res) => {
     scripts.onSaveBlueprint(req,res)

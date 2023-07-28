@@ -95,11 +95,17 @@ function registerNode(s, registerWithError){
     return s.path;
 }
 
-
-
 function saveNodeAndUpdate(originalNode, parsedNode, currentBlueprint, res){
 
     originalNode.save().then(()=>{
+
+        let completeFilePath = (scriptDir + "/" + parsedNode.path).split("/")
+        completeFilePath = completeFilePath.slice(0, completeFilePath.length - 1).join("/")
+
+        fs.mkdirSync(completeFilePath, { recursive: true });
+
+        console.log(parsedNode);
+
         fs.writeFileSync(scriptDir + "/" + parsedNode.path, parsedNode.code);
 
         let cachedScriptIndex = module.exports.scriptObjects.findIndex((n => n._id.toString() == originalNode._id.toString()));
@@ -205,6 +211,22 @@ async function onCompile(req,res){
         }
     });
 }
+
+async function onCreate(req,res){
+    let model = new ScriptModel({
+       ...req.body
+    });
+
+    model = await model.save();
+
+    let modelObj = model.toObject();
+    modelObj.code = req.body.code;
+
+    module.exports.scriptObjects.push(parseScript(modelObj));
+
+    saveNodeAndUpdate(model, modelObj, null, res);
+}
+
 
 async function saveBlueprint(blueprint){
 
@@ -392,6 +414,7 @@ async function parseScripts(scriptEntities){
             outputActions: [],
             code: null
         }
+
         let node = parseScript(script);
 
         if(!(JSON.stringify(script.inputData) == JSON.stringify(se.inputData))) {
@@ -488,6 +511,7 @@ module.exports = {
     updateLinks: updateLinks,
     onSaveBlueprint: onSaveBlueprint,
     onCompile: onCompile,
+    onCreate: onCreate,
     onGetBlueprint: onGetBlueprint,
     scriptObjects: []
 }

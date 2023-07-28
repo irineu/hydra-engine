@@ -59,6 +59,9 @@ function codeCompile(type){
 }
 
 function connectionsChange( type, slot, connected, link_info, input_info){
+
+
+
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(saveGraph, 2000);
 }
@@ -358,17 +361,52 @@ graphCanvas.getExtraMenuOptions = function (){
 
                 let newNodePath = prompt("Type the node path and name:", "my_nodes/NewNode.js");
 
-                let normalizedPath = registerNode({
-                    path: newNodePath,
-                    inputData: [],
-                    outputData: [],
-                    inputActions: ["onHandle"],
-                    outputActions: ["onNext"]
-                });
+                let className = newNodePath.split("/");
+                className = className[className.length -1].split(".")[0];
+                className = className.charAt(0).toUpperCase() + className.slice(1);
 
-                var node_const = LiteGraph.createNode(normalizedPath);
-                node_const.pos = canvas.convertEventToCanvasOffset(mouse_event);
-                graph.add(node_const);
+                let node = {
+                    "path": newNodePath,
+                    "valid": true,
+                    "error": null,
+                    "inputData": [],
+                    "outputData": [],
+                    "inputActions": ["onHandle"],
+                    "outputActions": ["onNext"],
+                    "code": "class "+className+" extends Base{\n    constructor() {\n        super();\n   \n        super.addInputAction(this.onHandle);\n        super.addOutputAction(\"onNext\");\n        \n    }\n\n    onHandle(ctx){\n        super.callOutputAction(\"onNext\", ctx);\n    }\n    \n}\n\nmodule = "+className+";"
+                }
+
+                fetch("node/create", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(node)
+                }).then(async response => {
+
+
+                    let result = await response.json();
+
+                    // console.log(node.code);
+                    registerNode(result.node);
+
+                    var node_const = LiteGraph.createNode(newNodePath);
+                    node_const.pos = canvas.convertEventToCanvasOffset(mouse_event);
+                    graph.add(node_const);
+                })
+
+
+
+                // let normalizedPath = registerNode({
+                //     path: newNodePath,
+                //     inputData: [],
+                //     outputData: [],
+                //     inputActions: ["onHandle"],
+                //     outputActions: ["onNext"]
+                // });
+                //
+
+
             }
         }
     ];
